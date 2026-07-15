@@ -406,6 +406,34 @@ function handleCrmRatingChange() {
   renderKanban();
 }
 
+function loadLastSearch() {
+  const saved = localStorage.getItem('maps_analyzer_last_search');
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      state.searchResults = data.results || [];
+      document.getElementById('search-query').value = data.query || '';
+      
+      if (data.categoryFilter) {
+        state.filters.searchCategory = data.categoryFilter;
+        const selectCat = document.getElementById('search-category-filter');
+        if (selectCat) selectCat.value = data.categoryFilter;
+      }
+      if (data.ratingFilter) {
+        state.filters.searchRating = data.ratingFilter;
+        const selectRat = document.getElementById('search-rating-filter');
+        if (selectRat) selectRat.value = data.ratingFilter;
+      }
+
+      if (state.searchResults.length > 0) {
+        renderSearchResults(data.source);
+      }
+    } catch (e) {
+      console.error('Erro ao carregar última busca:', e);
+    }
+  }
+}
+
 function renderSearchResults(source) {
   const resultsSection = document.getElementById('search-results-section');
   const resultsGrid = document.getElementById('results-grid');
@@ -413,6 +441,15 @@ function renderSearchResults(source) {
   const sourceInfo = document.getElementById('results-source-info');
 
   resultsGrid.innerHTML = '';
+  
+  // Salvar no LocalStorage para persistir entre recarregamentos
+  localStorage.setItem('maps_analyzer_last_search', JSON.stringify({
+    query: document.getElementById('search-query').value.trim(),
+    results: state.searchResults,
+    source: source,
+    categoryFilter: state.filters.searchCategory,
+    ratingFilter: state.filters.searchRating
+  }));
   
   // Filtrar resultados baseado na categoria e avaliação selecionadas
   const filtered = state.searchResults.filter(place => 
@@ -645,6 +682,9 @@ async function loadCrmLeads() {
     
     state.crmLeads = await response.json();
     renderKanban();
+    
+    // Restaurar a última busca agora que os leads do CRM foram carregados
+    loadLastSearch();
   } catch (error) {
     console.error('Erro ao carregar CRM:', error);
     showToast('Erro ao atualizar funil do CRM', true);
