@@ -13,7 +13,11 @@ let state = {
     whatsapp: '5511999999999',
     apiKey: '',
     vercelUrl: '',
-    backendUrl: 'http://localhost:3000'
+    backendUrl: 'http://localhost:3000',
+    waToken: '',
+    waPhoneId: '',
+    waTemplate: 'hello_world',
+    waLang: 'pt_BR'
   },
   currentLead: null
 };
@@ -53,11 +57,15 @@ function openModal(modalId) {
   modal.classList.add('active');
 
   if (modalId === 'settings-modal') {
-    document.getElementById('config-seller-name').value = state.settings.sellerName;
-    document.getElementById('config-whatsapp').value = state.settings.whatsapp;
-    document.getElementById('config-api-key').value = state.settings.apiKey;
+    document.getElementById('config-seller-name').value = state.settings.sellerName || '';
+    document.getElementById('config-whatsapp').value = state.settings.whatsapp || '';
+    document.getElementById('config-api-key').value = state.settings.apiKey || '';
     document.getElementById('config-vercel-url').value = state.settings.vercelUrl || '';
     document.getElementById('config-backend-url').value = state.settings.backendUrl || 'http://localhost:3000';
+    document.getElementById('config-wa-token').value = state.settings.waToken || '';
+    document.getElementById('config-wa-phone-id').value = state.settings.waPhoneId || '';
+    document.getElementById('config-wa-template').value = state.settings.waTemplate || 'hello_world';
+    document.getElementById('config-wa-lang').value = state.settings.waLang || 'pt_BR';
   }
 }
 
@@ -147,6 +155,10 @@ function saveSettings(event) {
   state.settings.apiKey = document.getElementById('config-api-key').value.trim();
   state.settings.vercelUrl = document.getElementById('config-vercel-url').value.trim();
   state.settings.backendUrl = document.getElementById('config-backend-url').value.trim() || 'http://localhost:3000';
+  state.settings.waToken = document.getElementById('config-wa-token').value.trim();
+  state.settings.waPhoneId = document.getElementById('config-wa-phone-id').value.trim();
+  state.settings.waTemplate = document.getElementById('config-wa-template').value.trim() || 'hello_world';
+  state.settings.waLang = document.getElementById('config-wa-lang').value.trim() || 'pt_BR';
 
   localStorage.setItem('maps_analyzer_settings', JSON.stringify(state.settings));
   closeModal('settings-modal');
@@ -707,7 +719,7 @@ function getProposalLink(lead) {
 // ----------------------------------------------------
 // WHATSAPP PITCH GENERATION
 // ----------------------------------------------------
-function openWhatsappPitch(leadId) {
+async function openWhatsappPitch(leadId) {
   const lead = state.crmLeads.find(l => l.id === leadId);
   if (!lead) return;
 
@@ -727,9 +739,8 @@ function openWhatsappPitch(leadId) {
 
   const proposalLink = getProposalLink(lead);
   
-  // Script de copywriting personalizado de acordo com o status atual
+  // Script de copywriting personalizado de acordo com o status atual (Usado para o envio manual)
   let text = '';
-  
   if (lead.status === 'novo') {
     text = `Olá! Falo com o responsável ou proprietário da *${lead.name}*?
     
@@ -755,25 +766,67 @@ Atenciosamente,
 *${state.settings.sellerName}*`;
   }
 
-  // URL de envio do WhatsApp
   const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;
+
+  // Verificar se a API Oficial está configurada
+  if (state.settings.waToken && state.settings.waPhoneId) {
+    showToast('Enviando mensagem via API Oficial...');
+    
+    try {
+      const response = await fetch(`${getApiBase()}/send-whatsapp-api`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: cleanPhone,
+          type: 'template',
+          templateName: state.settings.waTemplate || 'hello_world',
+          languageCode: state.settings.waLang || 'pt_BR',
+          variables: [lead.name, proposalLink],
+          apiKey: state.settings.waToken,
+          phoneNumberId: state.settings.waPhoneId
+        })
+      });
+
+      const resData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(resData.error || 'Erro na resposta da API');
+      }
+
+      // Registro de sucesso
+      const noteLog = `\n[API Oficial] Mensagem enviada automaticamente via API em ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}.`;
+      
+      await fetch(`${getApiBase()}/leads/${lead.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          status: lead.status === 'novo' ? 'contactado' : lead.status,
+          notes: (lead.notes || '') + noteLog 
+        })
+      });
+
+      showToast('Mensagem automática enviada com sucesso!');
+      loadCrmLeads();
+      return; // Sucesso, finaliza o fluxo
+    } catch (error) {
+      console.error('[WhatsApp API] Falha no envio automático:', error);
+      showToast('Falha no envio automático. Abrindo WhatsApp Web...', true);
+      // Caso dê erro na API, continua e abre o WhatsApp Web manualmente abaixo (Fallback)
+    }
+  }
+
+  // Envio manual / Fallback
+  const noteLog = `\n[Sistema] Abordagem iniciada manualmente via WhatsApp Web em ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}.`;
   
-  // Registrar contato nas anotações do lead
-  const noteLog = `\n[Sistema] Abordagem feita via WhatsApp em ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}.`;
-  
-  // Fazer requisição silenciosa no backend para anexar nota
-  fetch(`${getApiBase()}/leads/${lead.id}`, {
+  await fetch(`${getApiBase()}/leads/${lead.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ 
       status: lead.status === 'novo' ? 'contactado' : lead.status,
       notes: (lead.notes || '') + noteLog 
     })
-  }).then(() => {
-    // Recarregar leads em segundo plano
-    loadCrmLeads();
   });
 
-  // Abrir WhatsApp
+  loadCrmLeads();
   window.open(whatsappUrl, '_blank');
 }

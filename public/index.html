@@ -261,6 +261,40 @@
           </small>
         </div>
 
+        <!-- CONFIGURAÇÕES WHATSAPP API OFICIAL -->
+        <div class="form-group" style="border-top: 1px solid var(--glass-border); padding-top: 1.5rem; margin-top: 1.5rem;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 1rem; color: var(--accent-blue);"><i class="fa-brands fa-whatsapp"></i> WhatsApp Cloud API Oficial (Meta)</h4>
+        </div>
+
+        <div class="form-group">
+          <label for="config-wa-token">Token de Acesso Temporário ou Permanente</label>
+          <input type="password" id="config-wa-token" class="form-input" placeholder="EAABw...">
+          <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
+            Token gerado no portal developers.facebook.com.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="config-wa-phone-id">ID do Número de Telefone (Phone Number ID)</label>
+          <input type="text" id="config-wa-phone-id" class="form-input" placeholder="Ex: 104593820549281">
+          <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
+            Disponível no painel de configuração do WhatsApp do seu App da Meta.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="config-wa-template">Nome do Modelo (Template Name)</label>
+          <input type="text" id="config-wa-template" class="form-input" placeholder="Ex: hello_world">
+          <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
+            Nome exato do modelo aprovado na Meta. Variável 1 deve ser o Nome da Empresa, Variável 2 deve ser o Link da Proposta.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="config-wa-lang">Idioma do Modelo (Language Code)</label>
+          <input type="text" id="config-wa-lang" class="form-input" placeholder="pt_BR" value="pt_BR">
+        </div>
+
         <div class="form-actions">
           <button type="button" class="card-btn btn-secondary" onclick="closeModal('settings-modal')">Cancelar</button>
           <button type="submit" class="card-btn btn-primary">Salvar</button>

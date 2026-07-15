@@ -184,6 +184,98 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
+// Enviar mensagem automática via WhatsApp Cloud API Oficial (Meta)
+app.post('/api/send-whatsapp-api', async (req, res) => {
+  const { 
+    to, 
+    type, 
+    templateName, 
+    languageCode, 
+    variables, 
+    textBody,
+    apiKey, 
+    phoneNumberId 
+  } = req.body;
+
+  const token = apiKey || process.env.WHATSAPP_TOKEN;
+  const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+  console.log(`[WhatsApp API] Tentativa de envio para: ${to}. Tipo: ${type || 'template'}`);
+
+  if (!token || !phoneId) {
+    return res.status(400).json({ 
+      error: 'Configurações do WhatsApp incompletas. Certifique-se de preencher o Token e o ID do telefone.' 
+    });
+  }
+
+  if (!to) {
+    return res.status(400).json({ error: 'Número do destinatário "to" é obrigatório.' });
+  }
+
+  try {
+    let requestBody = {
+      messaging_product: "whatsapp",
+      to: to
+    };
+
+    if (type === 'text') {
+      requestBody.type = 'text';
+      requestBody.text = { body: textBody };
+    } else {
+      // Padrão: template
+      requestBody.type = 'template';
+      requestBody.template = {
+        name: templateName || process.env.WHATSAPP_TEMPLATE_NAME || 'hello_world',
+        language: {
+          code: languageCode || 'pt_BR'
+        }
+      };
+
+      if (variables && variables.length > 0) {
+        requestBody.template.components = [
+          {
+            type: 'body',
+            parameters: variables.map(v => ({
+              type: 'text',
+              text: v
+            }))
+          }
+        ];
+      }
+    }
+
+    const metaUrl = `https://graph.facebook.com/v20.0/${phoneId}/messages`;
+    
+    const response = await fetch(metaUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      console.error('[WhatsApp API] Meta retornou erro:', responseData);
+      return res.status(response.status).json({ 
+        error: 'Erro retornado pela API da Meta', 
+        details: responseData.error || responseData 
+      });
+    }
+
+    console.log('[WhatsApp API] Mensagem enviada com sucesso:', responseData);
+    res.json({ success: true, response: responseData });
+  } catch (error) {
+    console.error('[WhatsApp API] Erro ao enviar mensagem:', error);
+    res.status(500).json({ 
+      error: 'Erro interno ao tentar disparar mensagem via WhatsApp Cloud API', 
+      details: error.message 
+    });
+  }
+});
+
 // ----------------------------------------------------
 // GERADOR DE DADOS SIMULADOS (MOCK)
 // ----------------------------------------------------
