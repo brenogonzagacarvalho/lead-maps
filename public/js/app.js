@@ -411,6 +411,10 @@ function loadLastSearch() {
   if (saved) {
     try {
       const data = JSON.parse(saved);
+      if (data.source === 'simulation') {
+        localStorage.removeItem('maps_analyzer_last_search');
+        return;
+      }
       state.searchResults = data.results || [];
       document.getElementById('search-query').value = data.query || '';
       
@@ -442,14 +446,19 @@ function renderSearchResults(source) {
 
   resultsGrid.innerHTML = '';
   
-  // Salvar no LocalStorage para persistir entre recarregamentos
-  localStorage.setItem('maps_analyzer_last_search', JSON.stringify({
-    query: document.getElementById('search-query').value.trim(),
-    results: state.searchResults,
-    source: source,
-    categoryFilter: state.filters.searchCategory,
-    ratingFilter: state.filters.searchRating
-  }));
+  // Salvar no LocalStorage para persistir entre recarregamentos apenas se for busca real (para não misturar com simulações)
+  if (source !== 'simulation') {
+    localStorage.setItem('maps_analyzer_last_search', JSON.stringify({
+      query: document.getElementById('search-query').value.trim(),
+      results: state.searchResults,
+      source: source,
+      categoryFilter: state.filters.searchCategory,
+      ratingFilter: state.filters.searchRating
+    }));
+  } else {
+    // Se for simulação, limpamos qualquer busca salva anterior do Maps real para evitar confusão
+    localStorage.removeItem('maps_analyzer_last_search');
+  }
   
   // Filtrar resultados baseado na categoria e avaliação selecionadas
   const filtered = state.searchResults.filter(place => 
