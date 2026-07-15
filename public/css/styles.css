@@ -1042,3 +1042,9 @@ textarea.form-input {
   color: var(--accent-green);
   font-size: 0.95rem;
 }
+
+/* Correção de contraste e legibilidade das opções em dropdowns (select) */
+select option {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-main) !important;
+}
