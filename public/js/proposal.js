@@ -129,13 +129,61 @@ function renderProposalUI() {
   // --- MOCKUP INTERATIVO DO SITE ---
   document.getElementById('sim-nav-brand').innerText = proposalState.leadName.split(' ')[0].toUpperCase();
   document.getElementById('sim-hero-title').innerText = proposalState.leadName;
-  document.getElementById('sim-hero-desc').innerText = `Líder em ${proposalState.leadCategory} na região de ${proposalState.leadAddress.split('-')[1] || 'sua cidade'}. Qualidade comprovada com nota ${proposalState.leadRating} estrelas no Google!`;
-  document.getElementById('sim-feature-address').innerText = proposalState.leadAddress;
+  
+  const region = proposalState.leadAddress.split(',')[1] || proposalState.leadAddress.split('-')[1] || 'sua região';
+  document.getElementById('sim-hero-desc').innerText = `Excelência em ${proposalState.leadCategory} na região de ${region.trim()}. Qualidade garantida com nota ${proposalState.leadRating} no Google Maps.`;
+  
+  document.getElementById('sim-review-score-stars').innerText = `${proposalState.leadRating} ⭐`;
+  document.getElementById('sim-review-count').innerText = `baseado em ${proposalState.leadReviews} opiniões no Google Maps`;
+  document.getElementById('sim-footer-address').innerText = proposalState.leadAddress;
+  document.getElementById('sim-footer-phone').innerText = proposalState.leadPhone || 'Disponível no WhatsApp';
+
+  // Gerar Serviços com base no nicho/categoria
+  const categoryLower = proposalState.leadCategory.toLowerCase();
+  let services = [];
+
+  if (categoryLower.includes('dent') || categoryLower.includes('odont') || categoryLower.includes('clinic') || categoryLower.includes('saud') || categoryLower.includes('health') || categoryLower.includes('med')) {
+    services = [
+      { title: 'Tratamentos Clínicos', desc: 'Atendimento preventivo, limpezas e diagnóstico de ponta.', icon: 'fa-solid fa-tooth' },
+      { title: 'Estética Dental', desc: 'Clareamento profissional e lentes de contato para o seu sorriso.', icon: 'fa-solid fa-wand-magic-sparkles' },
+      { title: 'Urgências 24h', desc: 'Canal prioritário para atendimento em dor de dente ou acidentes.', icon: 'fa-solid fa-hand-holding-medical' }
+    ];
+  } else if (categoryLower.includes('mecan') || categoryLower.includes('oficin') || categoryLower.includes('auto') || categoryLower.includes('car') || categoryLower.includes('motor')) {
+    services = [
+      { title: 'Revisão Preventiva', desc: 'Diagnóstico computadorizado de freios, suspensão e injeção.', icon: 'fa-solid fa-screwdriver-wrench' },
+      { title: 'Alinhamento e Balanceamento', desc: 'Segurança e durabilidade para os pneus do seu veículo.', icon: 'fa-solid fa-gauge-high' },
+      { title: 'Reparos Mecânicos', desc: 'Troca de peças originais de motor e transmissão com garantia.', icon: 'fa-solid fa-gears' }
+    ];
+  } else {
+    services = [
+      { title: 'Atendimento Premium', desc: 'Compromisso absoluto com a sua satisfação e agilidade.', icon: 'fa-solid fa-award' },
+      { title: 'Profissionais Qualificados', desc: 'Equipe certificada pronta para resolver sua necessidade.', icon: 'fa-solid fa-users' },
+      { title: 'Orçamento sem Compromisso', desc: 'Preços transparentes e as melhores condições de pagamento.', icon: 'fa-solid fa-file-invoice-dollar' }
+    ];
+  }
+
+  const servicesContainer = document.getElementById('sim-services-container');
+  servicesContainer.innerHTML = '';
+  services.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'sim-service-card';
+    card.innerHTML = `
+      <i class="${s.icon}"></i>
+      <div>
+        <h4>${s.title}</h4>
+        <p>${s.desc}</p>
+      </div>
+    `;
+    servicesContainer.appendChild(card);
+  });
 
   // Configurar botões de simulação
-  document.getElementById('sim-hero-btn').addEventListener('click', () => {
-    alert(`[Simulação] Este botão levaria o cliente diretamente para o seu número de atendimento comercial (${proposalState.leadPhone || 'Não configurado'}).`);
-  });
+  const handleSimAlert = () => {
+    alert(`[Simulação] Este botão abriria o WhatsApp da sua empresa (${proposalState.leadPhone || 'não cadastrado'}) com uma mensagem pronta solicitando atendimento.`);
+  };
+  
+  document.getElementById('sim-hero-btn').addEventListener('click', handleSimAlert);
+  document.getElementById('sim-whatsapp-widget-btn').addEventListener('click', handleSimAlert);
 }
 
 // Ações do Cliente (Redirecionamento para o WhatsApp do Vendedor)

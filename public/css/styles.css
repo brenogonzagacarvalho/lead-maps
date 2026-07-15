@@ -1048,3 +1048,193 @@ select option {
   background-color: var(--bg-tertiary) !important;
   color: var(--text-main) !important;
 }
+
+/* Melhorias no Layout de Site Simulado (Mockup de Celular) */
+.sim-badge {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.sim-section-title {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: white;
+  margin-bottom: 1rem;
+  letter-spacing: 1px;
+  font-family: 'Outfit', sans-serif;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding-bottom: 0.5rem;
+}
+
+.sim-services-section {
+  padding: 1.5rem;
+  background: #0f172a;
+  text-align: left;
+}
+
+.sim-services-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.sim-service-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.sim-service-card i {
+  color: var(--accent-blue);
+  font-size: 1.1rem;
+  margin-top: 0.15rem;
+}
+
+.sim-service-card h4 {
+  font-size: 0.8rem;
+  color: white;
+  margin-bottom: 0.2rem;
+}
+
+.sim-service-card p {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.sim-reviews-section {
+  padding: 1.5rem;
+  background: #0b0f19;
+  text-align: left;
+  border-top: 1px solid rgba(255,255,255,0.03);
+}
+
+.sim-review-summary {
+  text-align: center;
+  margin-bottom: 1.2rem;
+}
+
+.sim-review-score {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--accent-orange);
+  margin-bottom: 0.2rem;
+}
+
+.sim-review-card {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  padding: 0.8rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.75rem;
+}
+
+.sim-reviewer-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.sim-reviewer-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-purple);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sim-reviewer-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.sim-reviewer-stars {
+  font-size: 0.6rem;
+  color: var(--accent-orange);
+}
+
+.sim-reviewer-text {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+  font-style: italic;
+}
+
+.sim-footer {
+  padding: 1.5rem;
+  background: #080b13;
+  text-align: center;
+  border-top: 1px solid rgba(255,255,255,0.03);
+}
+
+.sim-footer-info {
+  text-align: left;
+}
+
+.sim-footer-info p {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sim-footer-info p i {
+  color: var(--accent-blue);
+  width: 12px;
+}
+
+.sim-whatsapp-widget {
+  position: absolute;
+  bottom: 1.2rem;
+  right: 1.2rem;
+  width: 44px;
+  height: 44px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 1.4rem;
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+  cursor: pointer;
+  z-index: 100;
+  animation: simPulse 2s infinite;
+}
+
+@keyframes simPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 22px rgba(34, 197, 94, 0.6);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+  }
+}

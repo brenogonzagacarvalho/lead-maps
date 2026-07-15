@@ -99,44 +99,75 @@
         <div class="device-mockup">
           <div class="device-screen">
             <div class="iframe-simulation">
+              
+              <!-- Sim Nav -->
               <div class="sim-nav">
                 <span class="sim-brand" id="sim-nav-brand">Empresa</span>
                 <i class="fa-solid fa-bars"></i>
               </div>
               
+              <!-- Sim Hero -->
               <div class="sim-hero">
+                <div class="sim-badge"><i class="fa-solid fa-circle-check"></i> Aberto Agora</div>
                 <h2 id="sim-hero-title">Nome da Empresa</h2>
                 <p id="sim-hero-desc">Soluções profissionais e atendimento de excelência para você e sua família.</p>
-                <button class="sim-btn" id="sim-hero-btn">Falar no WhatsApp</button>
+                <button class="sim-btn" id="sim-hero-btn"><i class="fa-brands fa-whatsapp"></i> Falar no WhatsApp</button>
               </div>
               
-              <div class="sim-features">
-                <h3 style="font-size: 0.8rem; margin-bottom: 0.8rem; text-transform:uppercase; color: white;">Diferenciais</h3>
-                
-                <div class="sim-feature">
-                  <i class="fa-solid fa-circle-check"></i>
-                  <div>
-                    <strong style="display:block; color:white; font-size: 0.75rem;">Atendimento Rápido</strong>
-                    <span>Suporte especializado via WhatsApp.</span>
-                  </div>
-                </div>
-
-                <div class="sim-feature">
-                  <i class="fa-solid fa-circle-check"></i>
-                  <div>
-                    <strong style="display:block; color:white; font-size: 0.75rem;">Melhor Custo-Benefício</strong>
-                    <span>Preços justos e garantia de satisfação.</span>
-                  </div>
-                </div>
-
-                <div class="sim-feature">
-                  <i class="fa-solid fa-circle-check"></i>
-                  <div>
-                    <strong style="display:block; color:white; font-size: 0.75rem;">Localização Fácil</strong>
-                    <span id="sim-feature-address">Endereço da Empresa.</span>
-                  </div>
+              <!-- Sim Services (Nossos Serviços / Diferenciais) -->
+              <div class="sim-services-section">
+                <h3 class="sim-section-title">Serviços Disponíveis</h3>
+                <div class="sim-services-grid" id="sim-services-container">
+                  <!-- Injetado dinamicamente dependendo da categoria -->
                 </div>
               </div>
+
+              <!-- Sim Reviews (Depoimentos do Google) -->
+              <div class="sim-reviews-section">
+                <h3 class="sim-section-title">Avaliações dos Clientes</h3>
+                <div class="sim-review-summary">
+                  <div class="sim-review-score" id="sim-review-score-stars">4.5 ⭐</div>
+                  <div style="font-size: 0.65rem; color: var(--text-dimmed);" id="sim-review-count">baseado em 120 opiniões no Google Maps</div>
+                </div>
+                
+                <div class="sim-review-card">
+                  <div class="sim-reviewer-info">
+                    <div class="sim-reviewer-avatar">M</div>
+                    <div>
+                      <div class="sim-reviewer-name">Maria Silva</div>
+                      <div class="sim-reviewer-stars">⭐⭐⭐⭐⭐</div>
+                    </div>
+                  </div>
+                  <p class="sim-reviewer-text">Melhor atendimento da região! Fui super bem atendida e recomendo muito.</p>
+                </div>
+                
+                <div class="sim-review-card">
+                  <div class="sim-reviewer-info">
+                    <div class="sim-reviewer-avatar">J</div>
+                    <div>
+                      <div class="sim-reviewer-name">João Souza</div>
+                      <div class="sim-reviewer-stars">⭐⭐⭐⭐⭐</div>
+                    </div>
+                  </div>
+                  <p class="sim-reviewer-text">Serviço de altíssima qualidade, preço justo e entrega super rápida. Nota 10!</p>
+                </div>
+              </div>
+
+              <!-- Sim Footer -->
+              <div class="sim-footer">
+                <div class="sim-footer-info">
+                  <p><i class="fa-solid fa-location-dot"></i> <span id="sim-footer-address">Endereço da Empresa</span></p>
+                  <p><i class="fa-solid fa-phone"></i> <span id="sim-footer-phone">Telefone da Empresa</span></p>
+                  <p><i class="fa-solid fa-clock"></i> Segunda a Sábado: 08:00 às 18:00</p>
+                </div>
+                <p style="font-size: 0.55rem; color: var(--text-dimmed); margin-top: 1.2rem;">© 2026 Todos os direitos reservados.</p>
+              </div>
+
+              <!-- Sim Floating WhatsApp Button -->
+              <div class="sim-whatsapp-widget" id="sim-whatsapp-widget-btn">
+                <i class="fa-brands fa-whatsapp"></i>
+              </div>
+
             </div>
           </div>
         </div>
