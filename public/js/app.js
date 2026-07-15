@@ -19,7 +19,15 @@ let state = {
     waTemplate: 'hello_world',
     waLang: 'pt_BR'
   },
-  currentLead: null
+  currentLead: null,
+  searchPagination: {
+    currentPage: 1,
+    itemsPerPage: 10
+  },
+  filters: {
+    searchCategory: 'all',
+    crmCategory: 'all'
+  }
 };
 
 // Inicialização da Página
@@ -179,6 +187,9 @@ async function handleSearch(event) {
 
   if (!query) return;
 
+  // Resetar página de pesquisa ao buscar novamente
+  state.searchPagination.currentPage = 1;
+
   submitBtn.disabled = true;
   
   if (isSweep) {
@@ -306,6 +317,59 @@ async function executeFortalezaSweep(query, useSimulation) {
   }, 3500);
 }
 
+// Função auxiliar de correspondência de categoria/nicho
+function matchCategory(placeCategory, filterValue) {
+  if (filterValue === 'all') return true;
+  
+  const categoryLower = (placeCategory || '').toLowerCase();
+  
+  if (filterValue === 'clinica') {
+    return categoryLower.includes('clinic') || 
+           categoryLower.includes('odont') || 
+           categoryLower.includes('dentis') || 
+           categoryLower.includes('saude') || 
+           categoryLower.includes('health') || 
+           categoryLower.includes('medical') || 
+           categoryLower.includes('hospital') ||
+           categoryLower.includes('terapia') ||
+           categoryLower.includes('médic');
+  }
+  
+  if (filterValue === 'oficina') {
+    return categoryLower.includes('mecanic') || 
+           categoryLower.includes('oficina') || 
+           categoryLower.includes('auto') || 
+           categoryLower.includes('car') || 
+           categoryLower.includes('motor');
+  }
+  
+  if (filterValue === 'outros') {
+    const isClinica = categoryLower.includes('clinic') || categoryLower.includes('odont') || categoryLower.includes('dentis') || categoryLower.includes('saude') || categoryLower.includes('health') || categoryLower.includes('medical') || categoryLower.includes('hospital') || categoryLower.includes('terapia') || categoryLower.includes('médic');
+    const isOficina = categoryLower.includes('mecanic') || categoryLower.includes('oficina') || categoryLower.includes('auto') || categoryLower.includes('car') || categoryLower.includes('motor');
+    return !isClinica && !isOficina;
+  }
+  
+  return true;
+}
+
+function handleSearchCategoryChange() {
+  state.filters.searchCategory = document.getElementById('search-category-filter').value;
+  state.searchPagination.currentPage = 1;
+  const isSimulated = state.searchResults.length > 0 && document.getElementById('use-simulation').checked;
+  renderSearchResults(isSimulated ? 'simulation' : 'google_places_api');
+}
+
+function changeSearchPage(direction) {
+  state.searchPagination.currentPage += direction;
+  const isSimulated = state.searchResults.length > 0 && document.getElementById('use-simulation').checked;
+  renderSearchResults(isSimulated ? 'simulation' : 'google_places_api');
+}
+
+function handleCrmCategoryChange() {
+  state.filters.crmCategory = document.getElementById('crm-category-filter').value;
+  renderKanban();
+}
+
 function renderSearchResults(source) {
   const resultsSection = document.getElementById('search-results-section');
   const resultsGrid = document.getElementById('results-grid');
@@ -313,11 +377,32 @@ function renderSearchResults(source) {
   const sourceInfo = document.getElementById('results-source-info');
 
   resultsGrid.innerHTML = '';
-  resultsCount.innerText = state.searchResults.length;
+  
+  // Filtrar resultados baseado na categoria selecionada
+  const filtered = state.searchResults.filter(place => matchCategory(place.category, state.filters.searchCategory));
+  resultsCount.innerText = filtered.length;
   sourceInfo.innerText = source === 'simulation' ? 'Fonte: Simulador (Sem custo de API)' : 'Fonte: Google Maps Live API';
   resultsSection.style.display = 'block';
 
-  state.searchResults.forEach(place => {
+  // Aplicar paginação
+  const totalItems = filtered.length;
+  const itemsPerPage = state.searchPagination.itemsPerPage;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+
+  if (state.searchPagination.currentPage > totalPages) {
+    state.searchPagination.currentPage = totalPages;
+  }
+
+  const startIdx = (state.searchPagination.currentPage - 1) * itemsPerPage;
+  const endIdx = startIdx + itemsPerPage;
+  const pageItems = filtered.slice(startIdx, endIdx);
+
+  // Renderizar paginação na tela
+  document.getElementById('search-page-info').innerText = `Página ${state.searchPagination.currentPage} de ${totalPages}`;
+  document.getElementById('search-prev-btn').disabled = state.searchPagination.currentPage === 1;
+  document.getElementById('search-next-btn').disabled = state.searchPagination.currentPage === totalPages;
+
+  pageItems.forEach(place => {
     const card = document.createElement('div');
     card.className = `search-card ${place.website ? 'has-website' : 'no-website'}`;
 
@@ -459,11 +544,13 @@ function renderKanban() {
     document.getElementById(`count-${status}`).innerText = '0';
   });
 
-  document.getElementById('total-leads-badge').innerText = state.crmLeads.length;
+  // Filtrar leads do CRM baseado na categoria selecionada
+  const filteredLeads = state.crmLeads.filter(lead => matchCategory(lead.category, state.filters.crmCategory));
+  document.getElementById('total-leads-badge').innerText = filteredLeads.length;
 
   const counts = { novo: 0, contactado: 0, negociacao: 0, proposta: 0, ganho: 0, perdido: 0 };
 
-  state.crmLeads.forEach(lead => {
+  filteredLeads.forEach(lead => {
     const status = lead.status || 'novo';
     if (!statuses.includes(status)) return;
 
