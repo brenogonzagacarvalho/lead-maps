@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maps Lead Analyzer & CRM</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">
+        <i class="fa-solid fa-map-location-dot"></i>
+        <span>MapsLead</span>Analyzer
+      </div>
+    </div>
+    
+    <nav class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('analyzer-tab')">
+        <i class="fa-solid fa-magnifying-glass"></i> Analisador
+      </button>
+      <button class="tab-btn" onclick="switchTab('crm-tab')">
+        <i class="fa-solid fa-folder-open"></i> Pipeline CRM
+      </button>
+    </nav>
+    
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <div style="font-size: 0.85rem; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--glass-border); padding: 0.5rem 1rem; border-radius: var(--radius-md); display: flex; align-items: center; gap: 0.5rem;" title="Requisições reais da API Google Maps neste mês. Limite grátis: 1.000 requisições/mês.">
+        <i class="fa-solid fa-calculator" style="color: var(--accent-blue)"></i>
+        <span>API Grátis: <strong id="api-counter-badge" style="color: var(--accent-green)">0</strong>/1000</span>
+      </div>
+      <button class="settings-btn" onclick="openModal('settings-modal')">
+        <i class="fa-solid fa-gear"></i> Configurações
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main>
+    
+    <!-- ABA 1: ANALISADOR DE MAPS -->
+    <section id="analyzer-tab" class="tab-content active">
+      <div class="search-container">
+        <h2 class="search-title">
+          <i class="fa-solid fa-circle-nodes"></i> Encontrar Empresas no Google Maps
+        </h2>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem;">
+          Pesquise por categorias de negócios locais em qualquer cidade. Filtraremos automaticamente os estabelecimentos que ainda não possuem um website configurado no Google Maps para que você possa abordá-los.
+        </p>
+        
+        <form id="search-form" onsubmit="handleSearch(event)" class="search-bar">
+          <div class="search-input-wrapper">
+            <i class="fa-solid fa-map-pin"></i>
+            <input 
+              type="text" 
+              id="search-query" 
+              class="search-input" 
+              placeholder="Ex: oficinas em Santo André, padarias em Salvador, dentistas em Curitiba..." 
+              required
+            >
+          </div>
+          
+          <div class="options-wrapper" style="gap: 1rem; flex-wrap: wrap;">
+            <label class="switch-wrapper">
+              <input type="checkbox" id="use-simulation" checked style="width: 16px; height: 16px; accent-color: var(--accent-purple);">
+              <span>Usar Simulador</span>
+            </label>
+            
+            <label class="switch-wrapper">
+              <input type="checkbox" id="fortaleza-sweep" style="width: 16px; height: 16px; accent-color: var(--accent-blue);">
+              <span style="color: var(--accent-blue); font-weight: 600;">Varrer Bairros (Fortaleza-CE)</span>
+            </label>
+            
+            <button type="submit" class="search-btn" id="search-submit-btn">
+              <i class="fa-solid fa-magnifying-glass"></i> Buscar
+            </button>
+          </div>
+        </form>
+        
+        <!-- Barra de Progresso da Varredura -->
+        <div id="sweep-progress-container" style="display: none; margin-top: 1.5rem; background: rgba(0, 0, 0, 0.2); padding: 1.2rem; border-radius: var(--radius-md); border: 1px solid var(--glass-border);">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.5rem;">
+            <span id="sweep-status-text" style="color: var(--text-muted);">Iniciando varredura por bairros...</span>
+            <span id="sweep-percent-text" style="color: var(--accent-blue); font-weight: 600;">0%</span>
+          </div>
+          <div style="background: var(--bg-tertiary); height: 6px; border-radius: 3px; overflow: hidden; width: 100%;">
+            <div id="sweep-progress-bar" style="background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); width: 0%; height: 100%; transition: width 0.3s ease;"></div>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-dimmed); margin-top: 0.5rem; display: flex; justify-content: space-between;">
+            <span>Bairros analisados: Centro, Aldeota, Meireles, Messejana, Montese, Parangaba, Fátima, Cocó, Jovita Feitosa</span>
+            <span id="sweep-leads-count" style="color: var(--accent-green)">0 leads sem site encontrados</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resultados -->
+      <div id="search-results-section" style="display: none;">
+        <div class="results-header">
+          <h2 style="font-size: 1.4rem;">Resultados Encontrados (<span id="results-count">0</span>)</h2>
+          <div style="font-size: 0.9rem; color: var(--text-muted);" id="results-source-info">
+            Fonte: Simulação
+          </div>
+        </div>
+        
+        <div id="results-grid" class="results-grid">
+          <!-- Cards injetados via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 2: PIPELINE CRM -->
+    <section id="crm-tab" class="tab-content">
+      <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2 style="font-size: 1.8rem; margin-bottom: 0.25rem;">Funil de Vendas de Sites</h2>
+          <p style="color: var(--text-muted); font-size: 0.95rem;">Monitore as etapas de contato, envie propostas e feche novos negócios.</p>
+        </div>
+        <div style="background: var(--bg-secondary); border: 1px solid var(--glass-border); padding: 0.75rem 1.25rem; border-radius: var(--radius-md); font-size: 0.9rem;">
+          <span style="color: var(--text-muted)">Leads no Funil:</span> <strong id="total-leads-badge" style="color: var(--accent-purple)">0</strong>
+        </div>
+      </div>
+
+      <!-- Kanban Board -->
+      <div class="kanban-board">
+        <!-- Coluna: Novo -->
+        <div class="kanban-column column-novo" data-status="novo">
+          <div class="column-header">
+            <h3><i class="fa-solid fa-star"></i> Novo</h3>
+            <span class="column-badge" id="count-novo">0</span>
+          </div>
+          <div class="kanban-cards-container" id="container-novo">
+            <!-- Cards injetados -->
+          </div>
+        </div>
+
+        <!-- Coluna: Contactado -->
+        <div class="kanban-column column-contactado" data-status="contactado">
+          <div class="column-header">
+            <h3><i class="fa-solid fa-paper-plane"></i> Contactado</h3>
+            <span class="column-badge" id="count-contactado">0</span>
+          </div>
+          <div class="kanban-cards-container" id="container-contactado">
+            <!-- Cards injetados -->
+          </div>
+        </div>
+
+        <!-- Coluna: Em Negociação -->
+        <div class="kanban-column column-negociacao" data-status="negociacao">
+          <div class="column-header">
+            <h3><i class="fa-solid fa-comments"></i> Em Negociação</h3>
+            <span class="column-badge" id="count-negociacao">0</span>
+          </div>
+          <div class="kanban-cards-container" id="container-negociacao">
+            <!-- Cards injetados -->
+          </div>
+        </div>
+
+        <!-- Coluna: Proposta Enviada -->
+        <div class="kanban-column column-proposta" data-status="proposta">
+          <div class="column-header">
+            <h3><i class="fa-solid fa-file-contract"></i> Proposta</h3>
+            <span class="column-badge" id="count-proposta">0</span>
+          </div>
+          <div class="kanban-cards-container" id="container-proposta">
+            <!-- Cards injetados -->
+          </div>
+        </div>
+
+        <!-- Coluna: Ganho -->
+        <div class="kanban-column column-ganho" data-status="ganho">
+          <div class="column-header">
+            <h3><i class="fa-solid fa-trophy"></i> Fechado 🎉</h3>
+            <span class="column-badge" id="count-ganho">0</span>
+          </div>
+          <div class="kanban-cards-container" id="container-ganho">
+            <!-- Cards injetados -->
+          </div>
+        </div>
+
+        <!-- Coluna: Perdido -->
+        <div class="kanban-column column-perdido" data-status="perdido">
+          <div class="column-header">
+            <h3><i class="fa-solid fa-thumbs-down"></i> Perdido</h3>
+            <span class="column-badge" id="count-perdido">0</span>
+          </div>
+          <div class="kanban-cards-container" id="container-perdido">
+            <!-- Cards injetados -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: CONFIGURAÇÕES -->
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-gear"></i> Configurações do Sistema</h3>
+        <button class="close-btn" onclick="closeModal('settings-modal')">&times;</button>
+      </div>
+      <form id="settings-form" onsubmit="saveSettings(event)">
+        <div class="form-group">
+          <label for="config-seller-name">Seu Nome / Nome da Agência</label>
+          <input type="text" id="config-seller-name" class="form-input" required placeholder="Ex: Web Design Studio">
+        </div>
+        
+        <div class="form-group">
+          <label for="config-whatsapp">WhatsApp para Contato (Formato internacional, apenas números)</label>
+          <input type="text" id="config-whatsapp" class="form-input" required placeholder="Ex: 5511999999999">
+          <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
+            Deverá iniciar com 55 (Brasil) seguido do DDD e número de celular.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="config-api-key">Google Places API Key (Opcional)</label>
+          <input type="password" id="config-api-key" class="form-input" placeholder="Chave do Google Maps Platform">
+          <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
+            Caso não queira usar o Simulador, insira a chave com acesso a API Places (Text Search e Details).
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="config-vercel-url">URL de Produção na Vercel (Opcional)</label>
+          <input type="url" id="config-vercel-url" class="form-input" placeholder="Ex: https://meus-leads.vercel.app">
+          <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
+            Se definido, os links de proposta gerados para o WhatsApp apontarão para a sua Vercel de forma estática com parâmetros.
+          </small>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="card-btn btn-secondary" onclick="closeModal('settings-modal')">Cancelar</button>
+          <button type="submit" class="card-btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ANOTAÇÕES E HISTÓRICO DO LEAD -->
+  <div id="lead-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="lead-modal-title">Detalhes do Lead</h3>
+        <button class="close-btn" onclick="closeModal('lead-modal')">&times;</button>
+      </div>
+      <div id="lead-modal-details" style="margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">
+        <!-- Injetado dinamicamente -->
+      </div>
+      
+      <form id="lead-notes-form" onsubmit="saveLeadNotes(event)">
+        <input type="hidden" id="lead-modal-id">
+        <div class="form-group">
+          <label for="lead-modal-notes">Histórico de Contatos & Anotações</label>
+          <textarea id="lead-modal-notes" class="form-input" placeholder="Insira o resumo das ligações, feedbacks ou preferências do cliente..."></textarea>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="card-btn btn-secondary" onclick="closeModal('lead-modal')">Cancelar</button>
+          <button type="submit" class="card-btn btn-primary">Salvar Alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST DE NOTIFICAÇÃO -->
+  <div id="toast">
+    <i class="fa-solid fa-circle-check" style="color: var(--accent-green)"></i>
+    <span id="toast-message">Operação realizada com sucesso!</span>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

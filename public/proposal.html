@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proposta Comercial Personalizada</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="proposal-body">
+
+  <!-- HEADER SIMPLES -->
+  <header style="background: rgba(10, 15, 30, 0.4); border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+    <div class="brand">
+      <div class="brand-logo" style="font-size: 1.3rem;">
+        <i class="fa-solid fa-map-location-dot"></i>
+        <span>MapsLead</span>Proposal
+      </div>
+    </div>
+    <div style="font-size: 0.85rem; color: var(--text-muted);" id="proposal-date">
+      Proposta gerada hoje
+    </div>
+  </header>
+
+  <div class="proposal-container">
+    
+    <!-- INTRODUÇÃO -->
+    <div class="proposal-intro">
+      <h1 id="proposal-heading">Análise Comercial de Presença Online</h1>
+      <p style="font-size: 1.1rem; color: var(--text-muted); max-width: 800px; margin: 0 auto;" id="proposal-subheading">
+        Preparamos um diagnóstico e um modelo visual exclusivo de site para ajudar a alavancar o faturamento da sua empresa.
+      </p>
+    </div>
+
+    <!-- GRID PRINCIPAL: AUDITORIA VS PREVIEW -->
+    <div class="proposal-grid">
+      
+      <!-- LADO ESQUERDO: AUDITORIA DO PERFIL MAPS -->
+      <div class="proposal-card">
+        <h2 style="font-size: 1.6rem; margin-bottom: 1.5rem; color: var(--text-main); display: flex; align-items: center; gap: 0.75rem;">
+          <i class="fa-solid fa-square-poll-horizontal" style="color: var(--accent-blue)"></i> Diagnóstico de Presença
+        </h2>
+        
+        <div class="audit-score-container">
+          <div class="score-radial" id="audit-score">45</div>
+          <div>
+            <h3 style="font-size: 1.1rem; margin-bottom: 0.25rem;">Pontuação de Presença Digital</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted);" id="audit-feedback-text">
+              Sua empresa está visível, mas está perdendo até 70% dos clientes potenciais que buscam no Google.
+            </p>
+          </div>
+        </div>
+
+        <div class="audit-items">
+          <div class="audit-item positive">
+            <i class="fa-regular fa-circle-check"></i>
+            <div>
+              <strong style="display:block; color:var(--text-main); font-size: 0.95rem;">Empresa Listada no Google Maps</strong>
+              <span style="font-size: 0.85rem; color: var(--text-muted);" id="audit-maps-rating">Excelente avaliação média dos clientes locais.</span>
+            </div>
+          </div>
+
+          <div class="audit-item negative">
+            <i class="fa-regular fa-circle-xmark"></i>
+            <div>
+              <strong style="display:block; color:var(--text-main); font-size: 0.95rem;">Nenhum Website Cadastrado</strong>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Clientes não conseguem ver seus serviços detalhados ou fechar negócios online direto pelo Maps.</span>
+            </div>
+          </div>
+
+          <div class="audit-item negative">
+            <i class="fa-regular fa-circle-xmark"></i>
+            <div>
+              <strong style="display:block; color:var(--text-main); font-size: 0.95rem;">Sem Otimização de Busca Local (SEO)</strong>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Empresas concorrentes com sites aparecem no topo das buscas orgânicas do Google, roubando sua audiência.</span>
+            </div>
+          </div>
+
+          <div class="audit-item negative">
+            <i class="fa-regular fa-circle-xmark"></i>
+            <div>
+              <strong style="display:block; color:var(--text-main); font-size: 0.95rem;">Ausência de Canal de Contato 24h</strong>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Fora do horário comercial, seus clientes não encontram uma forma de enviar solicitações ou dúvidas.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LADO DIREITO: MODELO DE SITE PERSONALIZADO (MOCKUP INTERATIVO) -->
+      <div style="text-align: center;">
+        <h2 style="font-size: 1.6rem; margin-bottom: 0.5rem; color: var(--text-main);">
+          Demonstração do Seu Futuro Site
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem;">
+          Desenvolvemos este conceito interativo com a marca da sua empresa. Veja como ele se adapta no celular.
+        </p>
+
+        <!-- DISPOSITIVO DE SIMULAÇÃO -->
+        <div class="device-mockup">
+          <div class="device-screen">
+            <div class="iframe-simulation">
+              <div class="sim-nav">
+                <span class="sim-brand" id="sim-nav-brand">Empresa</span>
+                <i class="fa-solid fa-bars"></i>
+              </div>
+              
+              <div class="sim-hero">
+                <h2 id="sim-hero-title">Nome da Empresa</h2>
+                <p id="sim-hero-desc">Soluções profissionais e atendimento de excelência para você e sua família.</p>
+                <button class="sim-btn" id="sim-hero-btn">Falar no WhatsApp</button>
+              </div>
+              
+              <div class="sim-features">
+                <h3 style="font-size: 0.8rem; margin-bottom: 0.8rem; text-transform:uppercase; color: white;">Diferenciais</h3>
+                
+                <div class="sim-feature">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <div>
+                    <strong style="display:block; color:white; font-size: 0.75rem;">Atendimento Rápido</strong>
+                    <span>Suporte especializado via WhatsApp.</span>
+                  </div>
+                </div>
+
+                <div class="sim-feature">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <div>
+                    <strong style="display:block; color:white; font-size: 0.75rem;">Melhor Custo-Benefício</strong>
+                    <span>Preços justos e garantia de satisfação.</span>
+                  </div>
+                </div>
+
+                <div class="sim-feature">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <div>
+                    <strong style="display:block; color:white; font-size: 0.75rem;">Localização Fácil</strong>
+                    <span id="sim-feature-address">Endereço da Empresa.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CALL TO ACTION CENTRALIZADA -->
+    <div class="proposal-cta">
+      <h2 style="font-size: 2rem; margin-bottom: 1rem;">Gostou desta demonstração?</h2>
+      <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 2rem;">
+        Podemos colocar este site no ar com seu próprio domínio (ex: www.suaempresa.com.br) e integrar todos os seus canais em menos de 7 dias. Aumente suas vendas hoje mesmo.
+      </p>
+      
+      <div class="cta-buttons">
+        <button id="cta-accept-btn" onclick="acceptProposal()" class="cta-btn-whatsapp">
+          <i class="fa-brands fa-whatsapp"></i> Quero Garantir Meu Site Profissional!
+        </button>
+        <button id="cta-negotiate-btn" onclick="negotiateDetails()" class="card-btn btn-secondary" style="padding: 1rem 2rem; font-size: 1.05rem; border-radius: var(--radius-md)">
+          Conversar sobre Ajustes
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/proposal.js"></script>
+</body>
+</html>
