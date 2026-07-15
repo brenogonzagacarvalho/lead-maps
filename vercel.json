@@ -1,4 +1,11 @@
 {
-  "outputDirectory": "public",
-  "cleanUrls": true
+  "builds": [
+    { "src": "public/**/*", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/css/(.*)", "dest": "public/css/$1" },
+    { "src": "/js/(.*)", "dest": "public/js/$1" },
+    { "src": "/proposal.html", "dest": "public/proposal.html" },
+    { "src": "/(.*)", "dest": "public/index.html" }
+  ]
 }
