@@ -123,12 +123,21 @@
           <h2 style="font-size: 1.4rem;">Resultados Encontrados (<span id="results-count">0</span>)</h2>
           <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <label for="search-category-filter" style="font-size: 0.85rem; color: var(--text-muted)">Filtrar:</label>
+              <label for="search-category-filter" style="font-size: 0.85rem; color: var(--text-muted)">Categoria:</label>
               <select id="search-category-filter" class="form-input" style="width: auto; padding: 0.4rem 1rem; font-size: 0.85rem; height: auto;" onchange="handleSearchCategoryChange()">
                 <option value="all">Todas as Categorias</option>
                 <option value="clinica">Clínicas / Saúde</option>
                 <option value="oficina">Oficinas / Mecânicas</option>
                 <option value="outros">Outros</option>
+              </select>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <label for="search-rating-filter" style="font-size: 0.85rem; color: var(--text-muted)">Avaliação:</label>
+              <select id="search-rating-filter" class="form-input" style="width: auto; padding: 0.4rem 1rem; font-size: 0.85rem; height: auto;" onchange="handleSearchRatingChange()">
+                <option value="all">Todas</option>
+                <option value="high">4.0+ ⭐ (Boas)</option>
+                <option value="low">Abaixo de 4.0 ⭐</option>
+                <option value="none">Sem Estrelas</option>
               </select>
             </div>
             <button id="import-bulk-btn" class="card-btn btn-primary" style="padding: 0.4rem 1rem; font-size: 0.85rem; height: auto; display: flex; align-items: center; gap: 0.4rem;" onclick="importBulkToCrm()">
@@ -165,15 +174,24 @@
           <p style="color: var(--text-muted); font-size: 0.95rem;">Monitore as etapas de contato, envie propostas e feche novos negócios.</p>
         </div>
         <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <label for="crm-category-filter" style="font-size: 0.85rem; color: var(--text-muted)">Filtrar:</label>
-            <select id="crm-category-filter" class="form-input" style="width: auto; padding: 0.4rem 1rem; font-size: 0.85rem; height: auto;" onchange="handleCrmCategoryChange()">
-              <option value="all">Todas as Categorias</option>
-              <option value="clinica">Clínicas / Saúde</option>
-              <option value="oficina">Oficinas / Mecânicas</option>
-              <option value="outros">Outros</option>
-            </select>
-          </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <label for="crm-category-filter" style="font-size: 0.85rem; color: var(--text-muted)">Categoria:</label>
+              <select id="crm-category-filter" class="form-input" style="width: auto; padding: 0.4rem 1rem; font-size: 0.85rem; height: auto;" onchange="handleCrmCategoryChange()">
+                <option value="all">Todas as Categorias</option>
+                <option value="clinica">Clínicas / Saúde</option>
+                <option value="oficina">Oficinas / Mecânicas</option>
+                <option value="outros">Outros</option>
+              </select>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <label for="crm-rating-filter" style="font-size: 0.85rem; color: var(--text-muted)">Avaliação:</label>
+              <select id="crm-rating-filter" class="form-input" style="width: auto; padding: 0.4rem 1rem; font-size: 0.85rem; height: auto;" onchange="handleCrmRatingChange()">
+                <option value="all">Todas</option>
+                <option value="high">4.0+ ⭐ (Boas)</option>
+                <option value="low">Abaixo de 4.0 ⭐</option>
+                <option value="none">Sem Estrelas</option>
+              </select>
+            </div>
           <div style="background: var(--bg-secondary); border: 1px solid var(--glass-border); padding: 0.75rem 1.25rem; border-radius: var(--radius-md); font-size: 0.9rem;">
             <span style="color: var(--text-muted)">Leads no Funil:</span> <strong id="total-leads-badge" style="color: var(--accent-purple)">0</strong>
           </div>

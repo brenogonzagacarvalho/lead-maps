@@ -26,7 +26,9 @@ let state = {
   },
   filters: {
     searchCategory: 'all',
-    crmCategory: 'all'
+    searchRating: 'all',
+    crmCategory: 'all',
+    crmRating: 'all'
   }
 };
 
@@ -352,8 +354,36 @@ function matchCategory(placeCategory, filterValue) {
   return true;
 }
 
+// Função auxiliar de correspondência de avaliação/estrelas
+function matchRating(rating, filterValue) {
+  if (filterValue === 'all') return true;
+  
+  const r = parseFloat(rating) || 0;
+  
+  if (filterValue === 'high') {
+    return r >= 4.0;
+  }
+  
+  if (filterValue === 'low') {
+    return r > 0 && r < 4.0;
+  }
+  
+  if (filterValue === 'none') {
+    return r === 0;
+  }
+  
+  return true;
+}
+
 function handleSearchCategoryChange() {
   state.filters.searchCategory = document.getElementById('search-category-filter').value;
+  state.searchPagination.currentPage = 1;
+  const isSimulated = state.searchResults.length > 0 && document.getElementById('use-simulation').checked;
+  renderSearchResults(isSimulated ? 'simulation' : 'google_places_api');
+}
+
+function handleSearchRatingChange() {
+  state.filters.searchRating = document.getElementById('search-rating-filter').value;
   state.searchPagination.currentPage = 1;
   const isSimulated = state.searchResults.length > 0 && document.getElementById('use-simulation').checked;
   renderSearchResults(isSimulated ? 'simulation' : 'google_places_api');
@@ -365,8 +395,14 @@ function changeSearchPage(direction) {
   renderSearchResults(isSimulated ? 'simulation' : 'google_places_api');
 }
 
+// Lógica de atualização dos filtros do CRM
 function handleCrmCategoryChange() {
   state.filters.crmCategory = document.getElementById('crm-category-filter').value;
+  renderKanban();
+}
+
+function handleCrmRatingChange() {
+  state.filters.crmRating = document.getElementById('crm-rating-filter').value;
   renderKanban();
 }
 
@@ -378,8 +414,11 @@ function renderSearchResults(source) {
 
   resultsGrid.innerHTML = '';
   
-  // Filtrar resultados baseado na categoria selecionada
-  const filtered = state.searchResults.filter(place => matchCategory(place.category, state.filters.searchCategory));
+  // Filtrar resultados baseado na categoria e avaliação selecionadas
+  const filtered = state.searchResults.filter(place => 
+    matchCategory(place.category, state.filters.searchCategory) &&
+    matchRating(place.rating, state.filters.searchRating)
+  );
   resultsCount.innerText = filtered.length;
   sourceInfo.innerText = source === 'simulation' ? 'Fonte: Simulador (Sem custo de API)' : 'Fonte: Google Maps Live API';
   resultsSection.style.display = 'block';
@@ -522,8 +561,11 @@ async function importToCrm(placeId) {
 async function importBulkToCrm() {
   const filterValue = state.filters.searchCategory;
   
-  // Filtrar todos os resultados que batem com a categoria selecionada
-  const matching = state.searchResults.filter(place => matchCategory(place.category, filterValue));
+  // Filtrar todos os resultados que batem com a categoria e avaliação selecionadas
+  const matching = state.searchResults.filter(place => 
+    matchCategory(place.category, filterValue) &&
+    matchRating(place.rating, state.filters.searchRating)
+  );
   
   // Filtrar os que NÃO têm site E NÃO estão no CRM
   const eligibleLeads = matching.filter(place => {
@@ -618,8 +660,11 @@ function renderKanban() {
     document.getElementById(`count-${status}`).innerText = '0';
   });
 
-  // Filtrar leads do CRM baseado na categoria selecionada
-  const filteredLeads = state.crmLeads.filter(lead => matchCategory(lead.category, state.filters.crmCategory));
+  // Filtrar leads do CRM baseado na categoria e avaliação selecionadas
+  const filteredLeads = state.crmLeads.filter(lead => 
+    matchCategory(lead.category, state.filters.crmCategory) &&
+    matchRating(lead.rating, state.filters.crmRating)
+  );
   document.getElementById('total-leads-badge').innerText = filteredLeads.length;
 
   const counts = { novo: 0, contactado: 0, negociacao: 0, proposta: 0, ganho: 0, perdido: 0 };
