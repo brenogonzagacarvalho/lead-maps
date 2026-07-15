@@ -519,6 +519,80 @@ async function importToCrm(placeId) {
   }
 }
 
+async function importBulkToCrm() {
+  const filterValue = state.filters.searchCategory;
+  
+  // Filtrar todos os resultados que batem com a categoria selecionada
+  const matching = state.searchResults.filter(place => matchCategory(place.category, filterValue));
+  
+  // Filtrar os que NÃO têm site E NÃO estão no CRM
+  const eligibleLeads = matching.filter(place => {
+    const isAlreadyLead = state.crmLeads.some(lead => lead.place_id === place.place_id);
+    const hasNoWebsite = !place.website || place.website === '';
+    return hasNoWebsite && !isAlreadyLead;
+  });
+
+  if (eligibleLeads.length === 0) {
+    showToast('Nenhuma nova empresa sem site elegível para importação em massa!', true);
+    return;
+  }
+
+  if (!confirm(`Deseja importar todas as ${eligibleLeads.length} empresas do filtro selecionado para o CRM?`)) {
+    return;
+  }
+
+  const bulkBtn = document.getElementById('import-bulk-btn');
+  const originalHtml = bulkBtn.innerHTML;
+  bulkBtn.disabled = true;
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (let i = 0; i < eligibleLeads.length; i++) {
+    const place = eligibleLeads[i];
+    bulkBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Importando ${i + 1}/${eligibleLeads.length}...`;
+    
+    try {
+      const response = await fetch(`${getApiBase()}/leads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          place_id: place.place_id,
+          name: place.name,
+          phone: place.phone,
+          address: place.address,
+          rating: place.rating,
+          user_ratings_total: place.user_ratings_total,
+          category: place.category,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          status: 'novo',
+          notes: `Importado em massa a partir do painel em ${new Date().toLocaleDateString('pt-BR')}.`
+        })
+      });
+
+      if (!response.ok) throw new Error('Erro ao salvar lead');
+
+      const newLead = await response.json();
+      state.crmLeads.push(newLead);
+      successCount++;
+    } catch (err) {
+      console.error(`[Bulk Import] Falha ao importar ${place.name}:`, err);
+      failCount++;
+    }
+  }
+
+  bulkBtn.disabled = false;
+  bulkBtn.innerHTML = originalHtml;
+
+  // Recarregar CRM e re-renderizar a página de busca atualizada
+  loadCrmLeads();
+  const isSimulated = state.searchResults.length > 0 && document.getElementById('use-simulation').checked;
+  renderSearchResults(isSimulated ? 'simulation' : 'google_places_api');
+
+  showToast(`Importação em massa finalizada! Sucessos: ${successCount}. Falhas: ${failCount}.`);
+}
+
 // ----------------------------------------------------
 // PIPELINE CRM (KANBAN)
 // ----------------------------------------------------
