@@ -1,5 +1,8 @@
-// URL Base da API do Backend
-const API_BASE = 'http://localhost:3000/api';
+// Retorna a URL Base da API dinamicamente a partir das configurações
+const getApiBase = () => {
+  const backendUrl = state.settings.backendUrl || 'http://localhost:3000';
+  return backendUrl.replace(/\/+$/, '') + '/api';
+};
 
 // Estado da Aplicação
 let state = {
@@ -9,7 +12,8 @@ let state = {
     sellerName: 'Agência Web Express',
     whatsapp: '5511999999999',
     apiKey: '',
-    vercelUrl: ''
+    vercelUrl: '',
+    backendUrl: 'http://localhost:3000'
   },
   currentLead: null
 };
@@ -17,6 +21,7 @@ let state = {
 // Inicialização da Página
 document.addEventListener('DOMContentLoaded', () => {
   loadSettings();
+  checkLoginStatus();
   loadCrmLeads();
   setupDragAndDrop();
 });
@@ -52,6 +57,7 @@ function openModal(modalId) {
     document.getElementById('config-whatsapp').value = state.settings.whatsapp;
     document.getElementById('config-api-key').value = state.settings.apiKey;
     document.getElementById('config-vercel-url').value = state.settings.vercelUrl || '';
+    document.getElementById('config-backend-url').value = state.settings.backendUrl || 'http://localhost:3000';
   }
 }
 
@@ -107,16 +113,45 @@ function incrementApiCounter() {
   }
 }
 
+function checkLoginStatus() {
+  const loggedIn = localStorage.getItem('crm_logged_in') === 'true';
+  const loginGate = document.getElementById('login-gate');
+  if (loggedIn) {
+    loginGate.style.display = 'none';
+  } else {
+    loginGate.style.display = 'flex';
+  }
+}
+
+function handleLogin(event) {
+  event.preventDefault();
+  const passwordInput = document.getElementById('login-password').value;
+  const errorDiv = document.getElementById('login-error');
+
+  // Senha padrão configurada: fortal123
+  if (passwordInput === 'fortal123') {
+    localStorage.setItem('crm_logged_in', 'true');
+    document.getElementById('login-gate').style.display = 'none';
+    showToast('Bem-vindo ao Painel!');
+    errorDiv.style.display = 'none';
+  } else {
+    errorDiv.style.display = 'block';
+    document.getElementById('login-password').value = '';
+  }
+}
+
 function saveSettings(event) {
   event.preventDefault();
   state.settings.sellerName = document.getElementById('config-seller-name').value.trim();
   state.settings.whatsapp = document.getElementById('config-whatsapp').value.trim().replace(/\D/g, '');
   state.settings.apiKey = document.getElementById('config-api-key').value.trim();
   state.settings.vercelUrl = document.getElementById('config-vercel-url').value.trim();
+  state.settings.backendUrl = document.getElementById('config-backend-url').value.trim() || 'http://localhost:3000';
 
   localStorage.setItem('maps_analyzer_settings', JSON.stringify(state.settings));
   closeModal('settings-modal');
   showToast('Configurações salvas com sucesso!');
+  loadCrmLeads();
 }
 
 // ----------------------------------------------------
@@ -160,7 +195,7 @@ async function handleSearch(event) {
 
 // Helper para fazer uma única busca
 async function fetchSingleQuery(queryText, useSimulation) {
-  let url = `${API_BASE}/search?query=${encodeURIComponent(queryText)}`;
+  let url = `${getApiBase()}/search?query=${encodeURIComponent(queryText)}`;
   if (useSimulation || !state.settings.apiKey) {
     url += `&simulate=true`;
   }
@@ -351,7 +386,7 @@ async function importToCrm(placeId) {
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
   try {
-    const response = await fetch(`${API_BASE}/leads`, {
+    const response = await fetch(`${getApiBase()}/leads`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -392,7 +427,7 @@ async function importToCrm(placeId) {
 // ----------------------------------------------------
 async function loadCrmLeads() {
   try {
-    const response = await fetch(`${API_BASE}/leads`);
+    const response = await fetch(`${getApiBase()}/leads`);
     if (!response.ok) throw new Error('Falha ao obter leads');
     
     state.crmLeads = await response.json();
@@ -555,7 +590,7 @@ function setupDragAndDrop() {
 
 async function updateLeadStatusOnServer(leadId, newStatus) {
   try {
-    const response = await fetch(`${API_BASE}/leads/${leadId}`, {
+    const response = await fetch(`${getApiBase()}/leads/${leadId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus })
@@ -611,7 +646,7 @@ async function saveLeadNotes(event) {
   const notes = document.getElementById('lead-modal-notes').value.trim();
 
   try {
-    const response = await fetch(`${API_BASE}/leads/${leadId}`, {
+    const response = await fetch(`${getApiBase()}/leads/${leadId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ notes })
@@ -644,7 +679,7 @@ async function confirmDeleteLead(leadId) {
 
   if (confirm(`Deseja realmente remover "${lead.name}" do CRM?`)) {
     try {
-      const response = await fetch(`${API_BASE}/leads/${leadId}`, {
+      const response = await fetch(`${getApiBase()}/leads/${leadId}`, {
         method: 'DELETE'
       });
 
@@ -727,7 +762,7 @@ Atenciosamente,
   const noteLog = `\n[Sistema] Abordagem feita via WhatsApp em ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}.`;
   
   // Fazer requisição silenciosa no backend para anexar nota
-  fetch(`${API_BASE}/leads/${lead.id}`, {
+  fetch(`${getApiBase()}/leads/${lead.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ 

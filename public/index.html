@@ -9,6 +9,27 @@
 </head>
 <body>
 
+  <!-- LOGIN GATE -->
+  <div id="login-gate" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-primary); z-index: 10000; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+    <div style="background: var(--bg-secondary); border: 1px solid var(--glass-border); padding: 3rem; border-radius: var(--radius-lg); width: 90%; max-width: 400px; box-shadow: 0 10px 30px var(--glass-shadow); text-align: center;">
+      <div class="brand-logo" style="font-size: 2rem; margin-bottom: 1.5rem; justify-content: center;">
+        <i class="fa-solid fa-map-location-dot"></i>
+        <span>MapsLead</span>
+      </div>
+      <h2 style="font-size: 1.1rem; margin-bottom: 2rem; color: var(--text-muted);">Painel de Acesso Restrito</h2>
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group" style="text-align: left;">
+          <label for="login-password" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-muted);">Senha de Acesso</label>
+          <input type="password" id="login-password" class="form-input" required placeholder="Digite sua senha...">
+        </div>
+        <button type="submit" class="search-btn" style="width: 100%; margin-top: 1rem; justify-content: center;">Entrar no Painel</button>
+      </form>
+      <div id="login-error" style="color: var(--accent-red); font-size: 0.85rem; margin-top: 1rem; display: none;">
+        <i class="fa-solid fa-circle-exclamation"></i> Senha incorreta. Tente novamente.
+      </div>
+    </div>
+  </div>
+
   <!-- HEADER -->
   <header>
     <div class="brand">
@@ -213,6 +234,14 @@
           <input type="text" id="config-whatsapp" class="form-input" required placeholder="Ex: 5511999999999">
           <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
             Deverá iniciar com 55 (Brasil) seguido do DDD e número de celular.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="config-backend-url">URL do Servidor Backend (API)</label>
+          <input type="text" id="config-backend-url" class="form-input" required placeholder="Ex: http://localhost:3000">
+          <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
+            Se você for acessar o painel pelo celular, altere 'localhost' para o IP local do seu computador na rede Wi-Fi (ex: http://192.168.1.15:3000).
           </small>
         </div>
 
