@@ -750,7 +750,7 @@ Hoje em dia, cerca de 70% das pessoas procuram o site de uma empresa local no Ma
     
 Criei uma demonstração visual gratuita e exclusiva de como ficaria um site premium para a *${lead.name}* no celular e computador. 
 
-Você pode ver a proposta e a demonstração nesse link:
+Temos planos flexíveis: Mensal (R$ 89,90/mês) ou Pagamento Único (R$ 790,00). Você pode ver o modelo e os planos no link:
 👉 ${proposalLink}
     
 Se gostar, podemos conversar para colocá-lo no ar com o seu domínio próprio. O que acha?`;
