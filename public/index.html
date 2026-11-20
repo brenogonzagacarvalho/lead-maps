@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Maps Lead Analyzer & CRM</title>
+  <title>Maps Lead Analyzer & CRM — Prospecção por Prints</title>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -38,20 +38,27 @@
         <span>MapsLead</span>Analyzer
       </div>
     </div>
-    
+
     <nav class="nav-tabs">
-      <button class="tab-btn active" onclick="switchTab('analyzer-tab')">
-        <i class="fa-solid fa-magnifying-glass"></i> Analisador
+      <button class="tab-btn active" onclick="switchTab('prints-tab')">
+        <i class="fa-solid fa-camera-retro"></i> Capturar Prints
+      </button>
+      <button class="tab-btn" onclick="switchTab('analyzer-tab')">
+        <i class="fa-solid fa-magnifying-glass"></i> Buscar Maps
       </button>
       <button class="tab-btn" onclick="switchTab('crm-tab')">
         <i class="fa-solid fa-folder-open"></i> Pipeline CRM
       </button>
     </nav>
-    
-    <div style="display: flex; align-items: center; gap: 1rem;">
-      <div style="font-size: 0.85rem; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--glass-border); padding: 0.5rem 1rem; border-radius: var(--radius-md); display: flex; align-items: center; gap: 0.5rem;" title="Requisições reais da API Google Maps neste mês. Limite grátis: 1.000 requisições/mês.">
+
+    <div class="header-actions">
+      <div id="backend-status-badge" class="status-pill" title="Status da conexão com o servidor backend local/configurado">
+        <span class="status-dot"></span>
+        <span>Verificando...</span>
+      </div>
+      <div class="api-counter-pill" title="Requisições reais da API Google Maps neste mês. Limite grátis: 1.000 requisições/mês.">
         <i class="fa-solid fa-calculator" style="color: var(--accent-blue)"></i>
-        <span>API Grátis: <strong id="api-counter-badge" style="color: var(--accent-green)">0</strong>/1000</span>
+        <span>API Maps: <strong id="api-counter-badge" style="color: var(--accent-green)">0</strong>/1000</span>
       </div>
       <button class="settings-btn" onclick="openModal('settings-modal')">
         <i class="fa-solid fa-gear"></i> Configurações
@@ -61,46 +68,164 @@
 
   <!-- CONTEÚDO PRINCIPAL -->
   <main>
-    
-    <!-- ABA 1: ANALISADOR DE MAPS -->
-    <section id="analyzer-tab" class="tab-content active">
+
+    <!-- ABA 1: CAPTURAR PRINTS (ENTRADA PRINCIPAL) -->
+    <section id="prints-tab" class="tab-content active">
+      <!-- Banner de aviso quando falta chave da IA -->
+      <div id="ai-key-warning" class="ai-warning-banner" style="display: none;">
+        <div class="ai-warning-content">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <div>
+            <strong>Configure sua chave de IA (gratuita no Google Gemini) para ler prints automaticamente</strong>
+            <p>Assim que você colar a chave, basta dar <code>Ctrl+V</code> nos prints do Instagram ou Google Maps para extrair tudo e gerar propostas em segundos.</p>
+          </div>
+        </div>
+        <button type="button" class="card-btn btn-primary" style="flex: 0 0 auto; padding: 0.65rem 1.25rem;" onclick="openModal('settings-modal')">
+          <i class="fa-solid fa-key"></i> Configurar Chave Gratuita do Gemini
+        </button>
+      </div>
+
+      <div class="search-container">
+        <div class="prints-header-row">
+          <div>
+            <h2 class="search-title" style="margin-bottom: 0.5rem;">
+              <i class="fa-solid fa-camera-retro"></i> Importar Empresas por Prints (Instagram &amp; Maps)
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">
+              Cole (<code>Ctrl+V</code>) ou envie prints do Instagram da loja, Google Maps ou busca do Google. A IA extrai nome, @instagram, bio, serviços, telefone, verifica se já tem site próprio e monta a proposta personalizada automaticamente.
+            </p>
+          </div>
+          <span class="shortcut-badge"><i class="fa-regular fa-keyboard"></i> Ctrl+V em qualquer lugar desta aba</span>
+        </div>
+
+        <!-- Dropzone -->
+        <div id="print-dropzone" class="print-dropzone" tabindex="0">
+          <input type="file" id="print-file-input" accept="image/*" multiple hidden>
+          <div class="print-dropzone-icon">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+          <h3>Arraste seus prints aqui, clique para escolher ou aperte <span>Ctrl+V</span></h3>
+          <p>Suporta múltiplos prints de uma vez (no celular você pode selecionar várias fotos da galeria). Aceita perfis do Instagram, fichas do Google Maps, listas de empresas e WhatsApp Business.</p>
+        </div>
+
+        <!-- Barra de Controles do Lote -->
+        <div class="print-controls-bar">
+          <div class="print-control-group">
+            <label for="print-mode">Modo de leitura:</label>
+            <select id="print-mode" class="form-input" style="width: auto; padding: 0.5rem 0.9rem; font-size: 0.85rem;">
+              <option value="separate">Cada print = 1 empresa (ou lista)</option>
+              <option value="merge_single">Juntar prints da mesma empresa</option>
+            </select>
+          </div>
+
+          <label class="switch-wrapper">
+            <input type="checkbox" id="print-auto-import" checked style="width: 16px; height: 16px; accent-color: var(--accent-green);">
+            <span>Importar automaticamente sem site no CRM</span>
+          </label>
+
+          <div class="print-actions-group">
+            <button type="button" id="demo-print-btn" class="card-btn btn-secondary" style="flex: 0 0 auto; padding: 0.65rem 1.1rem;" onclick="loadDemoInstagramPrint()">
+              <i class="fa-brands fa-instagram"></i> Testar Exemplo Instagram
+            </button>
+            <button type="button" id="clear-prints-btn" class="card-btn btn-secondary" style="flex: 0 0 auto; padding: 0.65rem 1.1rem;" onclick="clearPrintQueue()">
+              <i class="fa-regular fa-trash-can"></i> Limpar
+            </button>
+            <button type="button" id="analyze-prints-btn" class="search-btn" style="padding: 0.7rem 1.5rem; font-size: 0.95rem;" onclick="analyzePrintQueue()">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Analisar Prints com IA
+            </button>
+          </div>
+        </div>
+
+        <!-- Fila de Miniaturas -->
+        <div id="print-queue-grid" class="print-queue-grid" style="display: none;">
+          <!-- Miniaturas injetadas via JS -->
+        </div>
+
+        <!-- Barra de Progresso -->
+        <div id="print-progress-container" class="progress-box" style="display: none;">
+          <div class="progress-meta">
+            <span id="print-progress-status">Lendo prints com Inteligência Artificial...</span>
+            <span id="print-progress-percent" style="color: var(--accent-blue); font-weight: 600;">0%</span>
+          </div>
+          <div class="progress-track">
+            <div id="print-progress-bar" class="progress-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empresas Extraídas dos Prints -->
+      <div id="extracted-results-section" style="display: none;">
+        <div class="results-header" style="flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h2 style="font-size: 1.4rem;">Empresas Extraídas (<span id="extracted-count">0</span>)</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Você pode ajustar qualquer campo antes ou depois de importar — as propostas são atualizadas na hora.</p>
+          </div>
+          <button type="button" id="import-all-extracted-btn" class="card-btn btn-primary" style="flex: 0 0 auto; padding: 0.65rem 1.25rem;" onclick="importAllExtractedToCrm()">
+            <i class="fa-solid fa-cloud-arrow-down"></i> Importar Todas Elegíveis no CRM
+          </button>
+        </div>
+
+        <div id="extracted-results-grid" class="results-grid">
+          <!-- Cards extraídos via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 2: ANALISADOR DE MAPS -->
+    <section id="analyzer-tab" class="tab-content">
       <div class="search-container">
         <h2 class="search-title">
-          <i class="fa-solid fa-circle-nodes"></i> Encontrar Empresas no Google Maps
+          <i class="fa-solid fa-circle-nodes"></i> Encontrar Lojas Sem Site (Fortaleza &amp; Região)
         </h2>
         <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem;">
-          Pesquise por categorias de negócios locais em qualquer cidade. Filtraremos automaticamente os estabelecimentos que ainda não possuem um website configurado no Google Maps para que você possa abordá-los.
+          Busque lojas reais gratuitamente pelo <strong>OpenStreetMap</strong> (sem precisar de chave de API) ou use sua chave do <strong>Google Places</strong>. Filtre apenas estabelecimentos sem site e abra direto no Instagram ou exporte para Excel (CSV).
         </p>
-        
+
         <form id="search-form" onsubmit="handleSearch(event)" class="search-bar">
           <div class="search-input-wrapper">
             <i class="fa-solid fa-map-pin"></i>
-            <input 
-              type="text" 
-              id="search-query" 
-              class="search-input" 
-              placeholder="Ex: oficinas em Santo André, padarias em Salvador, dentistas em Curitiba..." 
+            <input
+              type="text"
+              id="search-query"
+              class="search-input"
+              placeholder="Ex: loja de roupas Fortaleza, clinica odontologica Fortaleza, oficina mecanica Fortaleza..."
               required
             >
           </div>
-          
+
           <div class="options-wrapper" style="gap: 1rem; flex-wrap: wrap;">
-            <label class="switch-wrapper">
-              <input type="checkbox" id="use-simulation" checked style="width: 16px; height: 16px; accent-color: var(--accent-purple);">
-              <span>Usar Simulador</span>
-            </label>
-            
+            <select id="search-source" class="form-input" style="width: auto; padding: 0.6rem 0.9rem; font-size: 0.88rem;">
+              <option value="osm" selected>Grátis Real (OpenStreetMap)</option>
+              <option value="google">Google Places API (Chave)</option>
+              <option value="simulation">Simulador (Teste)</option>
+            </select>
+
             <label class="switch-wrapper">
               <input type="checkbox" id="fortaleza-sweep" style="width: 16px; height: 16px; accent-color: var(--accent-blue);">
-              <span style="color: var(--accent-blue); font-weight: 600;">Varrer Bairros (Fortaleza-CE)</span>
+              <span style="color: var(--accent-blue); font-weight: 600;">Varrer Nichos/Bairros (Fortaleza-CE)</span>
             </label>
-            
+
             <button type="submit" class="search-btn" id="search-submit-btn">
               <i class="fa-solid fa-magnifying-glass"></i> Buscar
             </button>
           </div>
         </form>
-        
+
+        <!-- Atalhos Rápidos de Fortaleza (Sem Site) -->
+        <div class="fortaleza-presets-bar">
+          <button type="button" class="preset-chip preset-chip-primary" onclick="runFortalezaMultiNicheScan()">
+            <i class="fa-solid fa-bolt"></i> Lista Geral Fortaleza (Vários Nichos)
+          </button>
+          <button type="button" class="preset-chip" onclick="quickSearchFortaleza('loja de roupas Fortaleza')">Lojas de Roupas</button>
+          <button type="button" class="preset-chip" onclick="quickSearchFortaleza('clinica odontologica Fortaleza')">Clínicas / Dentistas</button>
+          <button type="button" class="preset-chip" onclick="quickSearchFortaleza('salao de beleza Fortaleza')">Salões / Estética</button>
+          <button type="button" class="preset-chip" onclick="quickSearchFortaleza('barbearia Fortaleza')">Barbearias</button>
+          <button type="button" class="preset-chip" onclick="quickSearchFortaleza('oficina mecanica Fortaleza')">Oficinas Mecânicas</button>
+          <button type="button" class="preset-chip" onclick="quickSearchFortaleza('pet shop Fortaleza')">Pet Shops</button>
+          <button type="button" class="preset-chip" onclick="quickSearchFortaleza('pizzaria Fortaleza')">Pizzarias / Restaurantes</button>
+          <button type="button" class="preset-chip" onclick="quickSearchFortaleza('padaria Fortaleza')">Padarias / Cafés</button>
+        </div>
+
         <!-- Barra de Progresso da Varredura -->
         <div id="sweep-progress-container" style="display: none; margin-top: 1.5rem; background: rgba(0, 0, 0, 0.2); padding: 1.2rem; border-radius: var(--radius-md); border: 1px solid var(--glass-border);">
           <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.5rem;">
@@ -110,8 +235,8 @@
           <div style="background: var(--bg-tertiary); height: 6px; border-radius: 3px; overflow: hidden; width: 100%;">
             <div id="sweep-progress-bar" style="background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); width: 0%; height: 100%; transition: width 0.3s ease;"></div>
           </div>
-          <div style="font-size: 0.75rem; color: var(--text-dimmed); margin-top: 0.5rem; display: flex; justify-content: space-between;">
-            <span>Bairros analisados: Centro, Aldeota, Meireles, Messejana, Montese, Parangaba, Fátima, Cocó, Jovita Feitosa</span>
+          <div style="font-size: 0.75rem; color: var(--text-dimmed); margin-top: 0.5rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+            <span>Varredura consolidada e deduplicada automaticamente</span>
             <span id="sweep-leads-count" style="color: var(--accent-green)">0 leads sem site encontrados</span>
           </div>
         </div>
@@ -121,34 +246,45 @@
       <div id="search-results-section" style="display: none;">
         <div class="results-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
           <h2 style="font-size: 1.4rem;">Resultados Encontrados (<span id="results-count">0</span>)</h2>
-          <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+            <label class="switch-wrapper" style="font-size: 0.85rem;">
+              <input type="checkbox" id="search-only-no-site" checked onchange="handleSearchFilterChange()" style="width: 15px; height: 15px; accent-color: var(--accent-green);">
+              <span>Somente sem site</span>
+            </label>
+            <label class="switch-wrapper" style="font-size: 0.85rem;">
+              <input type="checkbox" id="search-only-with-contact" onchange="handleSearchFilterChange()" style="width: 15px; height: 15px; accent-color: var(--accent-blue);">
+              <span>Com Tel/Insta</span>
+            </label>
+            <div style="display: flex; align-items: center; gap: 0.45rem;">
               <label for="search-category-filter" style="font-size: 0.85rem; color: var(--text-muted)">Categoria:</label>
-              <select id="search-category-filter" class="form-input" style="width: auto; padding: 0.4rem 1rem; font-size: 0.85rem; height: auto;" onchange="handleSearchCategoryChange()">
+              <select id="search-category-filter" class="form-input" style="width: auto; padding: 0.4rem 0.9rem; font-size: 0.85rem; height: auto;" onchange="handleSearchCategoryChange()">
                 <option value="all">Todas as Categorias</option>
                 <option value="clinica">Clínicas / Saúde</option>
                 <option value="oficina">Oficinas / Mecânicas</option>
                 <option value="outros">Outros</option>
               </select>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.45rem;">
               <label for="search-rating-filter" style="font-size: 0.85rem; color: var(--text-muted)">Avaliação:</label>
-              <select id="search-rating-filter" class="form-input" style="width: auto; padding: 0.4rem 1rem; font-size: 0.85rem; height: auto;" onchange="handleSearchRatingChange()">
+              <select id="search-rating-filter" class="form-input" style="width: auto; padding: 0.4rem 0.9rem; font-size: 0.85rem; height: auto;" onchange="handleSearchRatingChange()">
                 <option value="all">Todas</option>
                 <option value="high">4.0+ ⭐ (Boas)</option>
                 <option value="low">Abaixo de 4.0 ⭐</option>
                 <option value="none">Sem Estrelas</option>
               </select>
             </div>
-            <button id="import-bulk-btn" class="card-btn btn-primary" style="padding: 0.4rem 1rem; font-size: 0.85rem; height: auto; display: flex; align-items: center; gap: 0.4rem;" onclick="importBulkToCrm()">
+            <button id="export-csv-btn" type="button" class="card-btn btn-secondary" style="flex: 0 0 auto; padding: 0.45rem 0.95rem; font-size: 0.85rem; height: auto;" onclick="exportSearchResultsCsv()">
+              <i class="fa-solid fa-file-csv"></i> Exportar CSV
+            </button>
+            <button id="import-bulk-btn" class="card-btn btn-primary" style="flex: 0 0 auto; padding: 0.45rem 1rem; font-size: 0.85rem; height: auto; display: flex; align-items: center; gap: 0.4rem;" onclick="importBulkToCrm()">
               <i class="fa-solid fa-cloud-arrow-down"></i> Importar em Massa no CRM
             </button>
-            <div style="font-size: 0.9rem; color: var(--text-muted);" id="results-source-info">
-              Fonte: Simulação
+            <div style="font-size: 0.88rem; color: var(--text-muted);" id="results-source-info">
+              Fonte: OpenStreetMap
             </div>
           </div>
         </div>
-        
+
         <div id="results-grid" class="results-grid">
           <!-- Cards injetados via JS -->
         </div>
@@ -166,35 +302,55 @@
       </div>
     </section>
 
-    <!-- ABA 2: PIPELINE CRM -->
+    <!-- ABA 3: PIPELINE CRM -->
     <section id="crm-tab" class="tab-content">
-      <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div class="crm-toolbar">
         <div>
           <h2 style="font-size: 1.8rem; margin-bottom: 0.25rem;">Funil de Vendas de Sites</h2>
           <p style="color: var(--text-muted); font-size: 0.95rem;">Monitore as etapas de contato, envie propostas e feche novos negócios.</p>
         </div>
-        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <label for="crm-category-filter" style="font-size: 0.85rem; color: var(--text-muted)">Categoria:</label>
-              <select id="crm-category-filter" class="form-input" style="width: auto; padding: 0.4rem 1rem; font-size: 0.85rem; height: auto;" onchange="handleCrmCategoryChange()">
-                <option value="all">Todas as Categorias</option>
-                <option value="clinica">Clínicas / Saúde</option>
-                <option value="oficina">Oficinas / Mecânicas</option>
-                <option value="outros">Outros</option>
-              </select>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <label for="crm-rating-filter" style="font-size: 0.85rem; color: var(--text-muted)">Avaliação:</label>
-              <select id="crm-rating-filter" class="form-input" style="width: auto; padding: 0.4rem 1rem; font-size: 0.85rem; height: auto;" onchange="handleCrmRatingChange()">
-                <option value="all">Todas</option>
-                <option value="high">4.0+ ⭐ (Boas)</option>
-                <option value="low">Abaixo de 4.0 ⭐</option>
-                <option value="none">Sem Estrelas</option>
-              </select>
-            </div>
-          <div style="background: var(--bg-secondary); border: 1px solid var(--glass-border); padding: 0.75rem 1.25rem; border-radius: var(--radius-md); font-size: 0.9rem;">
+        <div class="crm-filters-row">
+          <div class="crm-search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="crm-search-input" class="form-input" placeholder="Buscar nome, @insta, telefone..." oninput="handleCrmSearchChange()">
+          </div>
+
+          <div class="crm-filter-item">
+            <label for="crm-source-filter">Origem:</label>
+            <select id="crm-source-filter" class="form-input" style="width: auto; padding: 0.45rem 0.9rem; font-size: 0.85rem;" onchange="handleCrmSourceChange()">
+              <option value="all">Todas</option>
+              <option value="instagram">Instagram</option>
+              <option value="google_maps">Google Maps</option>
+            </select>
+          </div>
+
+          <div class="crm-filter-item">
+            <label for="crm-category-filter">Categoria:</label>
+            <select id="crm-category-filter" class="form-input" style="width: auto; padding: 0.45rem 0.9rem; font-size: 0.85rem;" onchange="handleCrmCategoryChange()">
+              <option value="all">Todas as Categorias</option>
+              <option value="clinica">Clínicas / Saúde</option>
+              <option value="oficina">Oficinas / Mecânicas</option>
+              <option value="outros">Outros</option>
+            </select>
+          </div>
+
+          <div class="crm-filter-item">
+            <label for="crm-rating-filter">Avaliação:</label>
+            <select id="crm-rating-filter" class="form-input" style="width: auto; padding: 0.45rem 0.9rem; font-size: 0.85rem;" onchange="handleCrmRatingChange()">
+              <option value="all">Todas</option>
+              <option value="high">4.0+ ⭐ (Boas)</option>
+              <option value="low">Abaixo de 4.0 ⭐</option>
+              <option value="none">Sem Estrelas</option>
+            </select>
+          </div>
+
+          <div class="crm-total-badge">
             <span style="color: var(--text-muted)">Leads no Funil:</span> <strong id="total-leads-badge" style="color: var(--accent-purple)">0</strong>
           </div>
+
+          <button type="button" class="search-btn" style="padding: 0.65rem 1.15rem; font-size: 0.88rem;" onclick="openQuickPitchModal()">
+            <i class="fa-solid fa-bolt"></i> Modo Disparo Rápido
+          </button>
         </div>
       </div>
 
@@ -206,9 +362,7 @@
             <h3><i class="fa-solid fa-star"></i> Novo</h3>
             <span class="column-badge" id="count-novo">0</span>
           </div>
-          <div class="kanban-cards-container" id="container-novo">
-            <!-- Cards injetados -->
-          </div>
+          <div class="kanban-cards-container" id="container-novo"></div>
         </div>
 
         <!-- Coluna: Contactado -->
@@ -217,9 +371,7 @@
             <h3><i class="fa-solid fa-paper-plane"></i> Contactado</h3>
             <span class="column-badge" id="count-contactado">0</span>
           </div>
-          <div class="kanban-cards-container" id="container-contactado">
-            <!-- Cards injetados -->
-          </div>
+          <div class="kanban-cards-container" id="container-contactado"></div>
         </div>
 
         <!-- Coluna: Em Negociação -->
@@ -228,9 +380,7 @@
             <h3><i class="fa-solid fa-comments"></i> Em Negociação</h3>
             <span class="column-badge" id="count-negociacao">0</span>
           </div>
-          <div class="kanban-cards-container" id="container-negociacao">
-            <!-- Cards injetados -->
-          </div>
+          <div class="kanban-cards-container" id="container-negociacao"></div>
         </div>
 
         <!-- Coluna: Proposta Enviada -->
@@ -239,9 +389,7 @@
             <h3><i class="fa-solid fa-file-contract"></i> Proposta</h3>
             <span class="column-badge" id="count-proposta">0</span>
           </div>
-          <div class="kanban-cards-container" id="container-proposta">
-            <!-- Cards injetados -->
-          </div>
+          <div class="kanban-cards-container" id="container-proposta"></div>
         </div>
 
         <!-- Coluna: Ganho -->
@@ -250,9 +398,7 @@
             <h3><i class="fa-solid fa-trophy"></i> Fechado 🎉</h3>
             <span class="column-badge" id="count-ganho">0</span>
           </div>
-          <div class="kanban-cards-container" id="container-ganho">
-            <!-- Cards injetados -->
-          </div>
+          <div class="kanban-cards-container" id="container-ganho"></div>
         </div>
 
         <!-- Coluna: Perdido -->
@@ -261,9 +407,7 @@
             <h3><i class="fa-solid fa-thumbs-down"></i> Perdido</h3>
             <span class="column-badge" id="count-perdido">0</span>
           </div>
-          <div class="kanban-cards-container" id="container-perdido">
-            <!-- Cards injetados -->
-          </div>
+          <div class="kanban-cards-container" id="container-perdido"></div>
         </div>
       </div>
     </section>
@@ -278,16 +422,50 @@
         <button class="close-btn" onclick="closeModal('settings-modal')">&times;</button>
       </div>
       <form id="settings-form" onsubmit="saveSettings(event)">
+        <!-- CONFIGURAÇÕES DE IA PARA PRINTS -->
+        <div class="form-group" style="border-bottom: 1px solid var(--glass-border); padding-bottom: 1.25rem; margin-bottom: 1.5rem;">
+          <h4 style="font-size: 1rem; margin-bottom: 1rem; color: var(--accent-purple); display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> IA para Leitura de Prints (Visão)
+          </h4>
+
+          <div class="form-group">
+            <label for="config-ai-provider">Provedor de IA</label>
+            <select id="config-ai-provider" class="form-input" onchange="handleAiProviderChange()">
+              <option value="gemini">Google Gemini — Plano Gratuito Recomendado</option>
+              <option value="openai">OpenAI GPT-4o-mini</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="config-ai-api-key">Chave da API da IA</label>
+            <input type="password" id="config-ai-api-key" class="form-input" placeholder="Cole aqui sua chave do Gemini (AIza...) ou OpenAI (sk-...)">
+            <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
+              Crie sua chave gratuita do Gemini em <a href="https://aistudio.google.com/apikey" target="_blank" style="color: var(--accent-blue);">aistudio.google.com/apikey</a> (ou configure <code>GEMINI_API_KEY</code> no <code>.env</code>).
+            </small>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="config-ai-model">Modelo de Visão</label>
+              <input type="text" id="config-ai-model" class="form-input" placeholder="gemini-2.5-flash">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="config-default-city">Cidade Padrão (opcional)</label>
+              <input type="text" id="config-default-city" class="form-input" placeholder="Ex: Fortaleza - CE">
+            </div>
+          </div>
+        </div>
+
         <div class="form-group">
           <label for="config-seller-name">Seu Nome / Nome da Agência</label>
           <input type="text" id="config-seller-name" class="form-input" required placeholder="Ex: Web Design Studio">
         </div>
-        
+
         <div class="form-group">
           <label for="config-whatsapp">WhatsApp para Contato (Formato internacional, apenas números)</label>
-          <input type="text" id="config-whatsapp" class="form-input" required placeholder="Ex: 5511999999999">
+          <input type="text" id="config-whatsapp" class="form-input" required placeholder="Ex: 5585999999999">
           <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
-            Deverá iniciar com 55 (Brasil) seguido do DDD e número de celular.
+            Deverá iniciar com 55 (Brasil) seguido do DDD e número de celular. Será embutido nos links de proposta da Vercel.
           </small>
         </div>
 
@@ -295,23 +473,20 @@
           <label for="config-backend-url">URL do Servidor Backend (API)</label>
           <input type="text" id="config-backend-url" class="form-input" required placeholder="Ex: http://localhost:3000">
           <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
-            Se você for acessar o painel pelo celular, altere 'localhost' para o IP local do seu computador na rede Wi-Fi (ex: http://192.168.1.15:3000).
+            Deixe igual à origem atual quando acessar localmente. Em rede local use o IP do computador (ex: http://192.168.1.15:3000).
           </small>
         </div>
 
         <div class="form-group">
-          <label for="config-api-key">Google Places API Key (Opcional)</label>
+          <label for="config-api-key">Google Places API Key (Opcional — apenas aba Buscar Maps)</label>
           <input type="password" id="config-api-key" class="form-input" placeholder="Chave do Google Maps Platform">
-          <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
-            Caso não queira usar o Simulador, insira a chave com acesso a API Places (Text Search e Details).
-          </small>
         </div>
 
         <div class="form-group">
           <label for="config-vercel-url">URL de Produção na Vercel (Opcional)</label>
           <input type="url" id="config-vercel-url" class="form-input" placeholder="Ex: https://meus-leads.vercel.app">
           <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
-            Se definido, os links de proposta gerados para o WhatsApp apontarão para a sua Vercel de forma estática com parâmetros.
+            Se definido, os links de proposta enviados ao cliente apontarão para a sua Vercel com todos os dados e o seu WhatsApp embutidos.
           </small>
         </div>
 
@@ -323,30 +498,22 @@
         <div class="form-group">
           <label for="config-wa-token">Token de Acesso Temporário ou Permanente</label>
           <input type="password" id="config-wa-token" class="form-input" placeholder="EAABw...">
-          <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
-            Token gerado no portal developers.facebook.com.
-          </small>
         </div>
 
         <div class="form-group">
           <label for="config-wa-phone-id">ID do Número de Telefone (Phone Number ID)</label>
           <input type="text" id="config-wa-phone-id" class="form-input" placeholder="Ex: 104593820549281">
-          <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
-            Disponível no painel de configuração do WhatsApp do seu App da Meta.
-          </small>
         </div>
 
-        <div class="form-group">
-          <label for="config-wa-template">Nome do Modelo (Template Name)</label>
-          <input type="text" id="config-wa-template" class="form-input" placeholder="Ex: hello_world">
-          <small style="color: var(--text-dimmed); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
-            Nome exato do modelo aprovado na Meta. Variável 1 deve ser o Nome da Empresa, Variável 2 deve ser o Link da Proposta.
-          </small>
-        </div>
-
-        <div class="form-group">
-          <label for="config-wa-lang">Idioma do Modelo (Language Code)</label>
-          <input type="text" id="config-wa-lang" class="form-input" placeholder="pt_BR" value="pt_BR">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="config-wa-template">Nome do Modelo</label>
+            <input type="text" id="config-wa-template" class="form-input" placeholder="Ex: hello_world">
+          </div>
+          <div class="form-group">
+            <label for="config-wa-lang">Idioma do Modelo</label>
+            <input type="text" id="config-wa-lang" class="form-input" placeholder="pt_BR" value="pt_BR">
+          </div>
         </div>
 
         <div class="form-actions">
@@ -357,29 +524,130 @@
     </div>
   </div>
 
-  <!-- MODAL: ANOTAÇÕES E HISTÓRICO DO LEAD -->
+  <!-- MODAL: ANOTAÇÕES, DETALHES & EDIÇÃO DO LEAD -->
   <div id="lead-modal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
         <h3 id="lead-modal-title">Detalhes do Lead</h3>
         <button class="close-btn" onclick="closeModal('lead-modal')">&times;</button>
       </div>
-      <div id="lead-modal-details" style="margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">
+      <div id="lead-modal-details" class="lead-modal-summary">
         <!-- Injetado dinamicamente -->
       </div>
-      
+
       <form id="lead-notes-form" onsubmit="saveLeadNotes(event)">
         <input type="hidden" id="lead-modal-id">
-        <div class="form-group">
-          <label for="lead-modal-notes">Histórico de Contatos & Anotações</label>
-          <textarea id="lead-modal-notes" class="form-input" placeholder="Insira o resumo das ligações, feedbacks ou preferências do cliente..."></textarea>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="lead-modal-phone">Telefone / WhatsApp</label>
+            <input type="text" id="lead-modal-phone" class="form-input" placeholder="(85) 99999-9999">
+          </div>
+          <div class="form-group">
+            <label for="lead-modal-instagram">Instagram</label>
+            <input type="text" id="lead-modal-instagram" class="form-input" placeholder="@empresa">
+          </div>
         </div>
-        
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="lead-modal-category">Categoria / Nicho</label>
+            <input type="text" id="lead-modal-category" class="form-input" placeholder="Ex: Clínica de Estética">
+          </div>
+          <div class="form-group">
+            <label for="lead-modal-hours">Horário de Funcionamento</label>
+            <input type="text" id="lead-modal-hours" class="form-input" placeholder="Seg a Sáb: 08:00 às 18:00">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="lead-modal-address">Endereço / Bairro</label>
+            <input type="text" id="lead-modal-address" class="form-input" placeholder="Rua / Bairro - Cidade">
+          </div>
+          <div class="form-group">
+            <label for="lead-modal-brand-color">Cor do Site Mockup (Hex)</label>
+            <input type="text" id="lead-modal-brand-color" class="form-input" placeholder="#6366f1">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="lead-modal-notes">Histórico de Contatos &amp; Anotações</label>
+          <textarea id="lead-modal-notes" class="form-input" placeholder="Insira o resumo das conversas, feedbacks ou preferências do cliente..."></textarea>
+        </div>
+
         <div class="form-actions">
           <button type="button" class="card-btn btn-secondary" onclick="closeModal('lead-modal')">Cancelar</button>
           <button type="submit" class="card-btn btn-primary">Salvar Alterações</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: MODO DISPARO RÁPIDO -->
+  <div id="quick-pitch-modal" class="modal">
+    <div class="modal-content" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-bolt" style="color: var(--accent-orange)"></i> Modo Disparo Rápido</h3>
+        <button class="close-btn" onclick="closeModal('quick-pitch-modal')">&times;</button>
+      </div>
+
+      <div class="quick-pitch-toolbar">
+        <div class="print-control-group">
+          <label for="quick-pitch-queue-type">Fila:</label>
+          <select id="quick-pitch-queue-type" class="form-input" style="width: auto; padding: 0.4rem 0.85rem; font-size: 0.85rem;" onchange="changeQuickPitchQueue()">
+            <option value="novo">Novos Leads</option>
+            <option value="followup">Follow-up (+48h sem resposta)</option>
+          </select>
+        </div>
+        <span id="quick-pitch-counter" class="column-badge" style="font-size: 0.82rem; padding: 0.3rem 0.75rem;">0 de 0</span>
+      </div>
+
+      <div id="quick-pitch-empty" style="display: none; text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+        <i class="fa-solid fa-circle-check" style="font-size: 2.5rem; color: var(--accent-green); margin-bottom: 1rem;"></i>
+        <p>Nenhum lead pendente nesta fila! Capture novos prints ou troque o filtro.</p>
+      </div>
+
+      <div id="quick-pitch-body">
+        <div class="quick-pitch-card">
+          <h4 id="quick-pitch-lead-name" style="font-size: 1.2rem; margin-bottom: 0.5rem;">Nome da Empresa</h4>
+          <div id="quick-pitch-meta" class="quick-pitch-meta">
+            <!-- Metadados dinâmicos -->
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+            <label for="quick-pitch-text" style="margin-bottom: 0;">Mensagem Personalizada</label>
+            <select id="quick-pitch-script-type" class="form-input" style="width: auto; padding: 0.35rem 0.8rem; font-size: 0.8rem;" onchange="updateQuickPitchMessage()">
+              <option value="auto">Roteiro Automático (Recomendado)</option>
+              <option value="flexivel">Roteiro A — Planos Flexíveis</option>
+              <option value="unico">Roteiro B — Fechamento Rápido (R$ 790)</option>
+              <option value="instagram_dm">DM do Instagram (Curta)</option>
+              <option value="followup">Retomada / Follow-up</option>
+            </select>
+          </div>
+          <textarea id="quick-pitch-text" class="form-input" style="min-height: 170px; font-size: 0.88rem; line-height: 1.5;"></textarea>
+        </div>
+
+        <div class="quick-pitch-actions">
+          <a id="quick-pitch-proposal-link" href="#" target="_blank" class="card-btn btn-secondary" style="text-decoration: none;">
+            <i class="fa-solid fa-mobile-screen"></i> Ver Proposta
+          </a>
+          <button type="button" class="card-btn btn-secondary" onclick="copyQuickPitchText()">
+            <i class="fa-regular fa-copy"></i> Copiar Texto
+          </button>
+          <button type="button" id="quick-pitch-ig-btn" class="card-btn btn-instagram" onclick="sendQuickPitchInstagramDm()">
+            <i class="fa-brands fa-instagram"></i> DM Instagram + Próximo
+          </button>
+          <button type="button" id="quick-pitch-wa-btn" class="card-btn btn-whatsapp" onclick="sendQuickPitchWhatsapp()">
+            <i class="fa-brands fa-whatsapp"></i> WhatsApp &amp; Próximo
+          </button>
+          <button type="button" class="card-btn btn-secondary" onclick="skipQuickPitch()">
+            Pular <i class="fa-solid fa-forward-step"></i>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

@@ -1,33 +1,80 @@
 // Estado Local da Proposta
+const urlParams = new URLSearchParams(window.location.search);
+const apiBase = (urlParams.get('api') || window.location.origin).replace(/\/+$/, '');
+const isPreviewMode = urlParams.get('preview') === '1';
+
 let proposalState = {
+  leadId: null,
   leadName: 'Sua Empresa',
   leadCategory: 'Negócio Local',
   leadPhone: '',
   leadAddress: 'Endereço Principal',
-  leadRating: 4.5,
-  leadReviews: 120,
+  leadRating: 0,
+  leadReviews: 0,
+  leadInstagram: '',
+  leadFollowers: '',
+  leadBio: '',
+  leadServices: [],
+  leadOpeningHours: '',
+  leadBrandColor: '',
+  leadSource: 'google_maps',
+  leadReviewsSample: [],
+  leadBioLink: '',
   sellerWhatsapp: '5511999999999',
   sellerName: 'Agência Web Express'
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
   setGenerationDate();
-  
-  // Capturar parâmetros da URL
-  const urlParams = new URLSearchParams(window.location.search);
+
   const leadId = urlParams.get('id');
 
   if (leadId) {
-    // Buscar dados do servidor
+    proposalState.leadId = leadId;
     await loadProposalFromServer(leadId);
+    // Sobrescreve WhatsApp/Vendedor se vier explicitamente na URL
+    if (urlParams.get('sw')) proposalState.sellerWhatsapp = urlParams.get('sw').replace(/\D/g, '');
+    if (urlParams.get('sn')) proposalState.sellerName = urlParams.get('sn');
   } else {
-    // Fallback: carregar dados de parâmetros diretos da URL se fornecidos
     loadProposalFromParams(urlParams);
   }
 
-  // Preencher a UI com os dados consolidados
   renderProposalUI();
 });
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function parseJsonSafe(val, fallback = []) {
+  if (Array.isArray(val)) return val;
+  if (!val || typeof val !== 'string') return fallback;
+  try {
+    const parsed = JSON.parse(val);
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function parseCompactServices(srvStr) {
+  if (!srvStr || typeof srvStr !== 'string') return [];
+  return srvStr
+    .split(';;')
+    .map(pair => {
+      const [title, desc] = pair.split('|');
+      return {
+        title: (title || '').trim(),
+        desc: (desc || '').trim()
+      };
+    })
+    .filter(item => item.title);
+}
 
 // Configura a data do dia na proposta
 function setGenerationDate() {
@@ -36,167 +83,498 @@ function setGenerationDate() {
   document.getElementById('proposal-date').innerText = `Gerado em ${today}`;
 }
 
-// Carregar dados de proposta do banco de dados (através do Express)
+// Carregar dados de proposta do banco de dados
 async function loadProposalFromServer(id) {
   try {
-    const response = await fetch(`http://localhost:3000/api/proposal-data/${id}`);
+    const response = await fetch(`${apiBase}/api/proposal-data/${encodeURIComponent(id)}`);
     if (!response.ok) throw new Error('Não foi possível obter os dados do lead');
 
     const data = await response.json();
-    const lead = data.lead;
+    const lead = data.lead || {};
 
-    proposalState.leadName = lead.name;
+    proposalState.leadName = lead.name || 'Sua Empresa';
     proposalState.leadCategory = lead.category || 'Negócio Local';
     proposalState.leadPhone = lead.phone || '';
-    proposalState.leadAddress = lead.address || 'Endereço Principal';
-    proposalState.leadRating = lead.rating || 0;
-    proposalState.leadReviews = lead.user_ratings_total || 0;
-    
+    proposalState.leadAddress = lead.address || 'Sua Região';
+    proposalState.leadRating = Number(lead.rating) || 0;
+    proposalState.leadReviews = parseInt(lead.user_ratings_total, 10) || 0;
+    proposalState.leadInstagram = lead.instagram || '';
+    proposalState.leadFollowers = lead.followers || '';
+    proposalState.leadBio = lead.bio || '';
+    proposalState.leadServices = parseJsonSafe(lead.services, []);
+    proposalState.leadOpeningHours = lead.opening_hours || '';
+    proposalState.leadBrandColor = lead.brand_color || '';
+    proposalState.leadSource = lead.source || (lead.instagram ? 'instagram' : 'google_maps');
+    proposalState.leadReviewsSample = parseJsonSafe(lead.reviews_sample, []);
+    proposalState.leadBioLink = lead.bio_link || '';
+
     // Configurações do Vendedor
-    proposalState.sellerWhatsapp = data.whatsappContact || '5511999999999';
+    proposalState.sellerWhatsapp = (data.whatsappContact || '5511999999999').replace(/\D/g, '');
     proposalState.sellerName = data.sellerName || 'Agência Web Express';
-    
-    // Registrar ação de proposta visualizada nas notas de forma silenciosa
-    registerViewEvent(id);
+
+    // Registrar visualização apenas quando NÃO for prévia do vendedor
+    if (!isPreviewMode) {
+      registerViewEvent(id);
+    }
   } catch (error) {
     console.error('Erro ao conectar com servidor:', error);
-    // Tenta carregar do LocalStorage de configurações do vendedor se falhar
-    const savedSettings = localStorage.getItem('maps_analyzer_settings');
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
-      proposalState.sellerWhatsapp = settings.whatsapp;
-      proposalState.sellerName = settings.sellerName;
-    }
+    loadSellerFallbackFromStorage();
   }
 }
 
-// Registro de auditoria: proposta visualizada pelo cliente
-function registerViewEvent(leadId) {
-  const noteLog = `\n[Sistema] Proposta visualizada online pelo cliente em ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}.`;
-  
-  fetch(`http://localhost:3000/api/leads/${leadId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      status: 'proposta',
-      notes: noteLog // O backend concatena se fizermos no app.js, mas no server.js precisamos garantir que o PUT atualize.
-    })
-  }).catch(err => console.log('Erro ao salvar log de visualização:', err));
+function loadSellerFallbackFromStorage() {
+  try {
+    const savedSettings = localStorage.getItem('maps_analyzer_settings');
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
+      if (settings.whatsapp) proposalState.sellerWhatsapp = String(settings.whatsapp).replace(/\D/g, '');
+      if (settings.sellerName) proposalState.sellerName = settings.sellerName;
+    }
+  } catch (err) {
+    console.warn('Não foi possível ler configurações locais:', err);
+  }
 }
 
-// Fallback: carregar diretamente da URL (útil para testes rápidos ou propostas estáticas)
+// Registro silencioso de visualização pelo cliente sem apagar notas nem regredir funil
+function registerViewEvent(leadId) {
+  fetch(`${apiBase}/api/proposal-view/${encodeURIComponent(leadId)}`, {
+    method: 'POST'
+  }).catch(err => console.log('Erro ao registrar visualização:', err));
+}
+
+// Carregar diretamente da URL (Vercel estático ou preview antes de importar)
 function loadProposalFromParams(params) {
   if (params.get('name')) proposalState.leadName = params.get('name');
   if (params.get('category')) proposalState.leadCategory = params.get('category');
   if (params.get('phone')) proposalState.leadPhone = params.get('phone');
   if (params.get('address')) proposalState.leadAddress = params.get('address');
-  if (params.get('rating')) proposalState.leadRating = parseFloat(params.get('rating'));
-  if (params.get('reviews')) proposalState.leadReviews = parseInt(params.get('reviews'));
-  
-  // Tentar carregar configurações do vendedor a partir do LocalStorage do navegador
-  const savedSettings = localStorage.getItem('maps_analyzer_settings');
-  if (savedSettings) {
-    const settings = JSON.parse(savedSettings);
-    proposalState.sellerWhatsapp = settings.whatsapp;
-    proposalState.sellerName = settings.sellerName;
+  if (params.get('rating')) proposalState.leadRating = parseFloat(params.get('rating')) || 0;
+  if (params.get('reviews')) proposalState.leadReviews = parseInt(params.get('reviews'), 10) || 0;
+  if (params.get('ig')) proposalState.leadInstagram = params.get('ig');
+  if (params.get('fol')) proposalState.leadFollowers = params.get('fol');
+  if (params.get('src')) proposalState.leadSource = params.get('src');
+  if (params.get('bc')) proposalState.leadBrandColor = params.get('bc');
+  if (params.get('hrs')) proposalState.leadOpeningHours = params.get('hrs');
+  if (params.get('bio')) proposalState.leadBio = params.get('bio');
+  if (params.get('bl')) proposalState.leadBioLink = params.get('bl');
+  if (params.get('srv')) proposalState.leadServices = parseCompactServices(params.get('srv'));
+
+  if (!params.get('src') && proposalState.leadInstagram && !proposalState.leadRating) {
+    proposalState.leadSource = 'instagram';
   }
+
+  const sw = params.get('sw');
+  const sn = params.get('sn');
+  if (sw) proposalState.sellerWhatsapp = sw.replace(/\D/g, '');
+  if (sn) proposalState.sellerName = sn;
+
+  if (!sw || !sn) {
+    loadSellerFallbackFromStorage();
+  }
+}
+
+function getDefaultServicesByNiche(textHint) {
+  const lower = (textHint || '').toLowerCase();
+
+  if (/(dent|odont|clinic|clínic|saud|saúd|health|medic|médic|fisioter|psicol|nutri)/.test(lower)) {
+    return [
+      { title: 'Atendimento Especializado', desc: 'Avaliação completa e planos personalizados com foco no seu bem-estar.', icon: 'fa-solid fa-heart-pulse' },
+      { title: 'Agendamento Facilitado', desc: 'Confirme horários e tire dúvidas diretamente pelo WhatsApp.', icon: 'fa-solid fa-calendar-check' },
+      { title: 'Estrutura Moderna', desc: 'Ambiente acolhedor com profissionais qualificados e tecnologia atual.', icon: 'fa-solid fa-user-doctor' }
+    ];
+  }
+
+  if (/(mecan|mecân|oficin|auto|car|motor|funilar|pneu|repar)/.test(lower)) {
+    return [
+      { title: 'Revisão Preventiva', desc: 'Diagnóstico completo de freios, suspensão, óleo e injeção eletrônica.', icon: 'fa-solid fa-screwdriver-wrench' },
+      { title: 'Alinhamento e Manutenção', desc: 'Mais segurança, economia e durabilidade para o seu veículo.', icon: 'fa-solid fa-gauge-high' },
+      { title: 'Orçamento Transparente', desc: 'Peças de procedência com garantia e aprovação rápida no WhatsApp.', icon: 'fa-solid fa-gears' }
+    ];
+  }
+
+  if (/(estetic|estétic|salao|salão|sobrancelh|cilios|cílios|unha|nail|lash|manicure|beleza|cabelo|harmoniz|spa)/.test(lower)) {
+    return [
+      { title: 'Procedimentos Exclusivos', desc: 'Protocolos modernos para realçar sua beleza natural com segurança.', icon: 'fa-solid fa-wand-magic-sparkles' },
+      { title: 'Atendimento Personalizado', desc: 'Avaliação individual para indicar o tratamento ideal para você.', icon: 'fa-solid fa-spa' },
+      { title: 'Horário Agendado', desc: 'Reserve seu horário com praticidade direto pelo WhatsApp.', icon: 'fa-regular fa-clock' }
+    ];
+  }
+
+  if (/(barbear|barber)/.test(lower)) {
+    return [
+      { title: 'Corte & Visagismo', desc: 'Cortes modernos e clássicos alinhados ao seu estilo.', icon: 'fa-solid fa-scissors' },
+      { title: 'Barba & Navalha', desc: 'Acabamento preciso com toalha quente e produtos premium.', icon: 'fa-solid fa-spray-can-sparkles' },
+      { title: 'Reserva sem Fila', desc: 'Agende seu horário em segundos pelo WhatsApp.', icon: 'fa-solid fa-calendar-day' }
+    ];
+  }
+
+  if (/(restaur|pizz|hamburg|lanche|sushi|acai|açaí|padar|doceria|confeit|delivery|food|gastron)/.test(lower)) {
+    return [
+      { title: 'Cardápio Atualizado', desc: 'Pratos, combos e promoções em destaque para pedir sem complicação.', icon: 'fa-solid fa-utensils' },
+      { title: 'Pedido Rápido', desc: 'Atendimento ágil para retirada no balcão ou delivery na região.', icon: 'fa-solid fa-motorcycle' },
+      { title: 'Eventos & Encomendas', desc: 'Condições especiais para confraternizações e pedidos sob medida.', icon: 'fa-solid fa-champagne-glasses' }
+    ];
+  }
+
+  if (/(pet|veterin|banho|tosa|cao|cão|animal)/.test(lower)) {
+    return [
+      { title: 'Banho & Tosa', desc: 'Cuidado carinhoso e produtos adequados para o bem-estar do seu pet.', icon: 'fa-solid fa-paw' },
+      { title: 'Saúde Veterinária', desc: 'Consultas, vacinas e acompanhamento preventivo completo.', icon: 'fa-solid fa-stethoscope' },
+      { title: 'Rações & Acessórios', desc: 'As melhores marcas com entrega rápida na sua região.', icon: 'fa-solid fa-bag-shopping' }
+    ];
+  }
+
+  if (/(moda|roupa|boutique|calcad|calçad|loja|acessor|joia|otica|ótica|present)/.test(lower)) {
+    return [
+      { title: 'Catálogo de Novidades', desc: 'Coleções selecionadas com fotos, tamanhos e atendimento consultivo.', icon: 'fa-solid fa-shirt' },
+      { title: 'Compra Facilitada', desc: 'Tire dúvidas de modelos e feche seu pedido direto no WhatsApp.', icon: 'fa-solid fa-bag-shopping' },
+      { title: 'Envio & Retirada', desc: 'Entrega ágil na cidade ou retirada rápida na loja física.', icon: 'fa-solid fa-truck-fast' }
+    ];
+  }
+
+  if (/(marcen|construt|arquit|engenh|eletric|hidraul|reforma|movel|móvel|planejad)/.test(lower)) {
+    return [
+      { title: 'Projetos Sob Medida', desc: 'Execução cuidadosa com acabamento de alto padrão e prazo definido.', icon: 'fa-solid fa-ruler-combined' },
+      { title: 'Visita Técnica', desc: 'Avaliação no local para orçamento detalhado sem surpresas.', icon: 'fa-solid fa-helmet-safety' },
+      { title: 'Garantia & Pós-Obra', desc: 'Equipe experiente e suporte completo do início à entrega.', icon: 'fa-solid fa-shield-halved' }
+    ];
+  }
+
+  return [
+    { title: 'Atendimento Premium', desc: 'Compromisso absoluto com a sua satisfação e agilidade no retorno.', icon: 'fa-solid fa-award' },
+    { title: 'Equipe Especializada', desc: 'Profissionais experientes prontos para indicar a melhor solução.', icon: 'fa-solid fa-users' },
+    { title: 'Orçamento no WhatsApp', desc: 'Atendimento direto, transparente e sem burocracia.', icon: 'fa-solid fa-file-invoice-dollar' }
+  ];
+}
+
+function formatBrandTitle(name) {
+  const words = (name || 'Empresa').trim().split(/\s+/).filter(Boolean);
+  const short = words.slice(0, 2).join(' ');
+  return short.slice(0, 18).toUpperCase();
+}
+
+function renderMockupReviewsSection(isInstagram) {
+  const container = document.getElementById('sim-reviews-container');
+  const reviewsSample = Array.isArray(proposalState.leadReviewsSample) ? proposalState.leadReviewsSample : [];
+
+  if (reviewsSample.length > 0) {
+    const cardsHtml = reviewsSample
+      .map(rev => {
+        const stars = '⭐'.repeat(Math.min(5, Math.max(1, parseInt(rev.rating, 10) || 5)));
+        const initial = escapeHtml((rev.author || 'C').charAt(0).toUpperCase());
+        return `
+          <div class="sim-review-card">
+            <div class="sim-reviewer-info">
+              <div class="sim-reviewer-avatar">${initial}</div>
+              <div>
+                <div class="sim-reviewer-name">${escapeHtml(rev.author || 'Cliente Local')}</div>
+                <div class="sim-reviewer-stars">${stars}</div>
+              </div>
+            </div>
+            <p class="sim-reviewer-text">"${escapeHtml(rev.text)}"</p>
+          </div>
+        `;
+      })
+      .join('');
+
+    container.innerHTML = `
+      <h3 class="sim-section-title">Avaliações dos Clientes</h3>
+      ${proposalState.leadRating > 0 ? `
+        <div class="sim-review-summary">
+          <div class="sim-review-score">${proposalState.leadRating} ⭐</div>
+          <div style="font-size: 0.65rem; color: var(--text-dimmed);">baseado em ${proposalState.leadReviews} opiniões no Google Maps</div>
+        </div>
+      ` : ''}
+      ${cardsHtml}
+    `;
+    return;
+  }
+
+  if (proposalState.leadRating > 0 && !isInstagram) {
+    container.innerHTML = `
+      <h3 class="sim-section-title">Reputação Local</h3>
+      <div class="sim-review-summary">
+        <div class="sim-review-score">${proposalState.leadRating} ⭐</div>
+        <div style="font-size: 0.65rem; color: var(--text-dimmed);">baseado em ${proposalState.leadReviews} opiniões no Google Maps</div>
+      </div>
+      <div class="sim-review-card">
+        <div class="sim-reviewer-info">
+          <div class="sim-reviewer-avatar"><i class="fa-solid fa-shield-check"></i></div>
+          <div>
+            <div class="sim-reviewer-name">Perfil Verificado na Região</div>
+            <div class="sim-reviewer-stars">Atendimento de Confiança</div>
+          </div>
+        </div>
+        <p class="sim-reviewer-text">Site integrado diretamente ao Google Maps e ao seu WhatsApp oficial para converter buscas locais em clientes.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Origem Instagram ou sem nota no Maps — sem avaliações falsas!
+  container.innerHTML = `
+    <h3 class="sim-section-title">Diferenciais &amp; Presença</h3>
+    ${proposalState.leadInstagram ? `
+      <div class="sim-review-card">
+        <div class="sim-reviewer-info">
+          <div class="sim-reviewer-avatar"><i class="fa-brands fa-instagram"></i></div>
+          <div>
+            <div class="sim-reviewer-name">${escapeHtml(proposalState.leadInstagram)}</div>
+            <div class="sim-reviewer-stars">${escapeHtml(proposalState.leadFollowers || 'Comunidade Ativa no Instagram')}</div>
+          </div>
+        </div>
+        <p class="sim-reviewer-text">Agora seus seguidores e novos clientes do Google encontram todos os serviços e orçamento em um só lugar.</p>
+      </div>
+    ` : ''}
+    <div class="sim-review-card">
+      <div class="sim-reviewer-info">
+        <div class="sim-reviewer-avatar"><i class="fa-brands fa-whatsapp"></i></div>
+        <div>
+          <div class="sim-reviewer-name">Orçamento em 1 Clique</div>
+          <div class="sim-reviewer-stars">Atendimento Rápido</div>
+        </div>
+      </div>
+      <p class="sim-reviewer-text">Botão direto no WhatsApp com mensagem pronta para fechar mais vendas pelo celular.</p>
+    </div>
+  `;
 }
 
 // Renderizar elementos na página
 function renderProposalUI() {
-  // Atualizar Textos
+  if (isPreviewMode) {
+    document.getElementById('seller-preview-bar').style.display = 'flex';
+  }
+
+  const mockupEl = document.getElementById('device-mockup-capture');
+  if (proposalState.leadBrandColor && /^#[0-9a-fA-F]{6}$/.test(proposalState.leadBrandColor)) {
+    mockupEl.style.setProperty('--sim-brand', proposalState.leadBrandColor);
+  }
+
+  const isInstagram =
+    proposalState.leadSource === 'instagram' ||
+    (Boolean(proposalState.leadInstagram) && (!proposalState.leadRating || proposalState.leadRating === 0));
+
+  // Atualizar Textos Principais
   document.getElementById('proposal-heading').innerText = `Análise Comercial: ${proposalState.leadName}`;
-  document.getElementById('proposal-subheading').innerText = `Preparamos um diagnóstico de presença no Google Maps e um conceito de site exclusivo para a ${proposalState.leadName}.`;
-  
-  // Nota da Auditoria (calculada dinamicamente baseada no rating e ausência de site)
-  let score = 40;
-  if (proposalState.leadRating > 4.2) score += 15; // Pontos por boa reputação
-  if (proposalState.leadReviews > 50) score += 10;   // Pontos por engajamento
-  
+  document.getElementById('proposal-subheading').innerText = isInstagram
+    ? `Preparamos um diagnóstico digital e um conceito exclusivo de site para transformar seguidores da ${proposalState.leadName} em clientes todos os dias.`
+    : `Preparamos um diagnóstico de presença no Google Maps e um conceito de site exclusivo para a ${proposalState.leadName}.`;
+
+  // Pontuação e Diagnóstico
+  let score = isInstagram ? 45 : 40;
+  if (isInstagram) {
+    if (proposalState.leadFollowers || proposalState.leadBio) score += 10;
+  } else {
+    if (proposalState.leadRating >= 4.2) score += 15;
+    if (proposalState.leadReviews > 50) score += 10;
+  }
+
   const scoreElement = document.getElementById('audit-score');
   scoreElement.innerText = score;
-
-  // Ajustar cor do circulo de nota baseado na nota
-  if (score >= 60) {
+  if (score >= 55) {
     scoreElement.style.borderColor = 'var(--accent-orange)';
     scoreElement.style.color = 'var(--accent-orange)';
-    document.getElementById('audit-feedback-text').innerText = `Sua empresa tem ótimos feedbacks (${proposalState.leadRating}★), mas sua visibilidade orgânica está limitada por não ter um site.`;
   }
 
-  // Descrição do Maps
-  document.getElementById('audit-maps-rating').innerText = `Sua empresa possui avaliação média excelente de ${proposalState.leadRating} ⭐ baseada em ${proposalState.leadReviews} comentários no Google Maps.`;
+  if (isInstagram) {
+    const handleLabel = proposalState.leadInstagram || 'Instagram Ativo';
+    document.getElementById('audit-item-1-title').innerText = `Presença Ativa no Instagram (${handleLabel})`;
+    document.getElementById('audit-item-1-desc').innerText = proposalState.leadFollowers
+      ? `${proposalState.leadFollowers} — seu público já acompanha a loja por lá, mas depende apenas da rede social.`
+      : 'Seu público já acompanha a empresa no Instagram, mas ainda falta um endereço próprio fora das redes sociais.';
+
+    document.getElementById('audit-item-2-title').innerText = 'Sem Site Próprio na Bio';
+    document.getElementById('audit-item-2-desc').innerText = proposalState.leadBioLink
+      ? 'Hoje o link da bio direciona para um agregador/WhatsApp genérico, sem apresentar seus serviços e autoridade antes do contato.'
+      : 'Quem encontra seu perfil ou pesquisa pelo seu serviço no Google não encontra um site oficial para fechar orçamento.';
+
+    document.getElementById('audit-feedback-text').innerText =
+      'Sua marca já gera atenção no Instagram, mas sem um site próprio você perde buscas do Google e deixa dinheiro na mesa.';
+  } else {
+    document.getElementById('audit-item-1-title').innerText = 'Empresa Listada no Google Maps';
+    if (proposalState.leadRating > 0) {
+      document.getElementById('audit-item-1-desc').innerText =
+        `Sua empresa possui avaliação média de ${proposalState.leadRating} ⭐ baseada em ${proposalState.leadReviews} comentários no Google Maps.`;
+      document.getElementById('audit-feedback-text').innerText =
+        `Sua empresa tem ótimos feedbacks (${proposalState.leadRating}★), mas sua visibilidade orgânica está limitada por não ter um site.`;
+    } else {
+      document.getElementById('audit-item-1-desc').innerText =
+        'Sua empresa já aparece nas buscas locais do Google Maps para clientes da região.';
+      document.getElementById('audit-feedback-text').innerText =
+        'Sua empresa já está visível no Google, mas sem um site cadastrado concorrentes acabam ficando com a maioria dos cliques.';
+    }
+
+    document.getElementById('audit-item-2-title').innerText = 'Nenhum Website Próprio Cadastrado';
+    document.getElementById('audit-item-2-desc').innerText =
+      'Clientes não conseguem ver seus serviços detalhados ou solicitar orçamento online direto pelo Google.';
+  }
 
   // --- MOCKUP INTERATIVO DO SITE ---
-  document.getElementById('sim-nav-brand').innerText = proposalState.leadName.split(' ')[0].toUpperCase();
+  document.getElementById('sim-nav-brand').innerText = formatBrandTitle(proposalState.leadName);
   document.getElementById('sim-hero-title').innerText = proposalState.leadName;
-  
-  const region = proposalState.leadAddress.split(',')[1] || proposalState.leadAddress.split('-')[1] || 'sua região';
-  document.getElementById('sim-hero-desc').innerText = `Excelência em ${proposalState.leadCategory} na região de ${region.trim()}. Qualidade garantida com nota ${proposalState.leadRating} no Google Maps.`;
-  
-  document.getElementById('sim-review-score-stars').innerText = `${proposalState.leadRating} ⭐`;
-  document.getElementById('sim-review-count').innerText = `baseado em ${proposalState.leadReviews} opiniões no Google Maps`;
-  document.getElementById('sim-footer-address').innerText = proposalState.leadAddress;
-  document.getElementById('sim-footer-phone').innerText = proposalState.leadPhone || 'Disponível no WhatsApp';
 
-  // Gerar Serviços com base no nicho/categoria
-  const categoryLower = proposalState.leadCategory.toLowerCase();
-  let services = [];
-
-  if (categoryLower.includes('dent') || categoryLower.includes('odont') || categoryLower.includes('clinic') || categoryLower.includes('saud') || categoryLower.includes('health') || categoryLower.includes('med')) {
-    services = [
-      { title: 'Tratamentos Clínicos', desc: 'Atendimento preventivo, limpezas e diagnóstico de ponta.', icon: 'fa-solid fa-tooth' },
-      { title: 'Estética Dental', desc: 'Clareamento profissional e lentes de contato para o seu sorriso.', icon: 'fa-solid fa-wand-magic-sparkles' },
-      { title: 'Urgências 24h', desc: 'Canal prioritário para atendimento em dor de dente ou acidentes.', icon: 'fa-solid fa-hand-holding-medical' }
-    ];
-  } else if (categoryLower.includes('mecan') || categoryLower.includes('oficin') || categoryLower.includes('auto') || categoryLower.includes('car') || categoryLower.includes('motor')) {
-    services = [
-      { title: 'Revisão Preventiva', desc: 'Diagnóstico computadorizado de freios, suspensão e injeção.', icon: 'fa-solid fa-screwdriver-wrench' },
-      { title: 'Alinhamento e Balanceamento', desc: 'Segurança e durabilidade para os pneus do seu veículo.', icon: 'fa-solid fa-gauge-high' },
-      { title: 'Reparos Mecânicos', desc: 'Troca de peças originais de motor e transmissão com garantia.', icon: 'fa-solid fa-gears' }
-    ];
+  const igPill = document.getElementById('sim-ig-pill');
+  if (proposalState.leadInstagram) {
+    igPill.style.display = 'inline-flex';
+    igPill.querySelector('span').innerText = proposalState.leadInstagram;
   } else {
-    services = [
-      { title: 'Atendimento Premium', desc: 'Compromisso absoluto com a sua satisfação e agilidade.', icon: 'fa-solid fa-award' },
-      { title: 'Profissionais Qualificados', desc: 'Equipe certificada pronta para resolver sua necessidade.', icon: 'fa-solid fa-users' },
-      { title: 'Orçamento sem Compromisso', desc: 'Preços transparentes e as melhores condições de pagamento.', icon: 'fa-solid fa-file-invoice-dollar' }
-    ];
+    igPill.style.display = 'none';
   }
+
+  const regionPart = proposalState.leadAddress.split(',')[1] || proposalState.leadAddress.split('-')[1] || '';
+  const cleanRegion = regionPart.trim() || proposalState.leadAddress || 'sua região';
+
+  if (proposalState.leadBio && proposalState.leadBio.trim()) {
+    const cleanBio = proposalState.leadBio.trim().replace(/\s+/g, ' ').slice(0, 170);
+    document.getElementById('sim-hero-desc').innerText = cleanBio;
+  } else if (proposalState.leadRating > 0) {
+    document.getElementById('sim-hero-desc').innerText =
+      `Excelência em ${proposalState.leadCategory} na região de ${cleanRegion}. Qualidade reconhecida com nota ${proposalState.leadRating} no Google Maps.`;
+  } else {
+    document.getElementById('sim-hero-desc').innerText =
+      `Referência em ${proposalState.leadCategory} em ${cleanRegion}. Atendimento ágil e orçamento direto pelo WhatsApp.`;
+  }
+
+  document.getElementById('sim-footer-address').innerText = proposalState.leadAddress || 'Atendimento local e online';
+  document.getElementById('sim-footer-phone').innerText = proposalState.leadPhone || 'Disponível no WhatsApp';
+  document.getElementById('sim-hours').innerText = proposalState.leadOpeningHours || 'Segunda a Sábado: 08:00 às 18:00';
+
+  // Gerar Serviços (prioridade para serviços extraídos do print pela IA)
+  const fallbackServices = getDefaultServicesByNiche(`${proposalState.leadCategory} ${proposalState.leadName} ${proposalState.leadBio}`);
+  const extractedServices = Array.isArray(proposalState.leadServices) && proposalState.leadServices.length > 0
+    ? proposalState.leadServices.map((item, idx) => ({
+        title: item.title || `Serviço ${idx + 1}`,
+        desc: item.desc || 'Atendimento especializado com qualidade e garantia.',
+        icon: fallbackServices[idx % fallbackServices.length]?.icon || 'fa-solid fa-check-double'
+      }))
+    : fallbackServices;
 
   const servicesContainer = document.getElementById('sim-services-container');
   servicesContainer.innerHTML = '';
-  services.forEach(s => {
+  extractedServices.forEach(s => {
     const card = document.createElement('div');
     card.className = 'sim-service-card';
     card.innerHTML = `
-      <i class="${s.icon}"></i>
+      <i class="${escapeHtml(s.icon)}"></i>
       <div>
-        <h4>${s.title}</h4>
-        <p>${s.desc}</p>
+        <h4>${escapeHtml(s.title)}</h4>
+        <p>${escapeHtml(s.desc)}</p>
       </div>
     `;
     servicesContainer.appendChild(card);
   });
 
-  // Configurar botões de simulação
+  // Renderizar seção de Avaliações / Diferenciais
+  renderMockupReviewsSection(isInstagram);
+
+  // Configurar botões simulados dentro do celular
   const handleSimAlert = () => {
-    alert(`[Simulação] Este botão abriria o WhatsApp da sua empresa (${proposalState.leadPhone || 'não cadastrado'}) com uma mensagem pronta solicitando atendimento.`);
+    alert(`[Simulação] Este botão abriria o WhatsApp da ${proposalState.leadName} (${proposalState.leadPhone || 'número da loja'}) com uma mensagem pronta de orçamento.`);
   };
-  
-  document.getElementById('sim-hero-btn').addEventListener('click', handleSimAlert);
-  document.getElementById('sim-whatsapp-widget-btn').addEventListener('click', handleSimAlert);
+
+  document.getElementById('sim-hero-btn').onclick = handleSimAlert;
+  document.getElementById('sim-whatsapp-widget-btn').onclick = handleSimAlert;
 }
 
 // Ações do Cliente (Redirecionamento para o WhatsApp do Vendedor)
-function acceptProposal() {
-  const text = `Olá! Recebi a proposta comercial da *${proposalState.sellerName}* e gostei muito do modelo de site personalizado para a *${proposalState.leadName}*. Gostaria de avançar com o projeto do site profissional!`;
-  
+function acceptProposal(selectedPlan = '') {
+  const planNote = selectedPlan ? ` Tenho interesse no *${selectedPlan}*.` : '';
+  const text = `Olá! Recebi a proposta comercial da *${proposalState.sellerName}* e gostei muito do modelo de site personalizado para a *${proposalState.leadName}*.${planNote} Gostaria de avançar com o projeto!`;
+
   const url = `https://api.whatsapp.com/send?phone=${proposalState.sellerWhatsapp}&text=${encodeURIComponent(text)}`;
   window.open(url, '_blank');
 }
 
 function negotiateDetails() {
-  const text = `Olá! Vi o diagnóstico de presença no Google da *${proposalState.leadName}* e o modelo de site interativo. Gostaria de tirar algumas dúvidas e ajustar alguns detalhes para prosseguirmos.`;
-  
+  const text = `Olá! Vi o diagnóstico de presença online da *${proposalState.leadName}* e o modelo de site interativo. Gostaria de tirar algumas dúvidas e ajustar alguns detalhes para prosseguirmos.`;
+
   const url = `https://api.whatsapp.com/send?phone=${proposalState.sellerWhatsapp}&text=${encodeURIComponent(text)}`;
   window.open(url, '_blank');
+}
+
+// Ferramentas do Vendedor (Preview Bar)
+function loadHtml2Canvas() {
+  if (window.html2canvas) return Promise.resolve(window.html2canvas);
+
+  const cdns = [
+    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+    'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js'
+  ];
+
+  return new Promise((resolve, reject) => {
+    let idx = 0;
+    const tryNext = () => {
+      if (idx >= cdns.length) {
+        reject(new Error('Não foi possível carregar a biblioteca de captura de imagem.'));
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = cdns[idx++];
+      script.onload = () => {
+        if (window.html2canvas) resolve(window.html2canvas);
+        else tryNext();
+      };
+      script.onerror = tryNext;
+      document.head.appendChild(script);
+    };
+    tryNext();
+  });
+}
+
+async function downloadMockupImage() {
+  const btn = document.getElementById('download-mockup-btn');
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando PNG...';
+
+  try {
+    const html2canvas = await loadHtml2Canvas();
+    const target = document.getElementById('device-mockup-capture');
+    const canvas = await html2canvas(target, {
+      backgroundColor: '#090d16',
+      scale: 2,
+      useCORS: true,
+      logging: false
+    });
+
+    const slug = (proposalState.leadName || 'empresa')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'empresa';
+
+    const link = document.createElement('a');
+    link.download = `mockup-${slug}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch (err) {
+    console.error('Erro ao gerar imagem do mockup:', err);
+    alert('Não foi possível gerar o PNG automaticamente. Verifique sua conexão ou tire um print da tela.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
+async function copyClientProposalLink() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('preview');
+  const clientUrl = url.toString();
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(clientUrl);
+    } else {
+      const temp = document.createElement('textarea');
+      temp.value = clientUrl;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+    }
+    alert('Link do cliente copiado para a área de transferência!');
+  } catch {
+    prompt('Copie o link da proposta para enviar ao cliente:', clientUrl);
+  }
 }

@@ -9,6 +9,22 @@
 </head>
 <body class="proposal-body">
 
+  <!-- BARRA DO VENDEDOR (EXIBIDA APENAS EM ?preview=1) -->
+  <div id="seller-preview-bar" class="seller-preview-bar" style="display: none;">
+    <div class="seller-preview-info">
+      <i class="fa-solid fa-eye"></i>
+      <span><strong>Modo Prévia do Vendedor</strong> — Não registra visualização nem altera o CRM.</span>
+    </div>
+    <div class="seller-preview-actions">
+      <button type="button" id="download-mockup-btn" class="card-btn btn-primary" style="flex: 0 0 auto; padding: 0.5rem 1rem;" onclick="downloadMockupImage()">
+        <i class="fa-solid fa-camera"></i> Baixar Print do Mockup (PNG)
+      </button>
+      <button type="button" class="card-btn btn-secondary" style="flex: 0 0 auto; padding: 0.5rem 1rem;" onclick="copyClientProposalLink()">
+        <i class="fa-regular fa-copy"></i> Copiar Link p/ Cliente
+      </button>
+    </div>
+  </div>
+
   <!-- HEADER SIMPLES -->
   <header style="background: rgba(10, 15, 30, 0.4); border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
     <div class="brand">
@@ -23,7 +39,7 @@
   </header>
 
   <div class="proposal-container">
-    
+
     <!-- INTRODUÇÃO -->
     <div class="proposal-intro">
       <h1 id="proposal-heading">Análise Comercial de Presença Online</h1>
@@ -34,19 +50,19 @@
 
     <!-- GRID PRINCIPAL: AUDITORIA VS PREVIEW -->
     <div class="proposal-grid">
-      
-      <!-- LADO ESQUERDO: AUDITORIA DO PERFIL MAPS -->
+
+      <!-- LADO ESQUERDO: AUDITORIA -->
       <div class="proposal-card">
         <h2 style="font-size: 1.6rem; margin-bottom: 1.5rem; color: var(--text-main); display: flex; align-items: center; gap: 0.75rem;">
           <i class="fa-solid fa-square-poll-horizontal" style="color: var(--accent-blue)"></i> Diagnóstico de Presença
         </h2>
-        
+
         <div class="audit-score-container">
           <div class="score-radial" id="audit-score">45</div>
           <div>
             <h3 style="font-size: 1.1rem; margin-bottom: 0.25rem;">Pontuação de Presença Digital</h3>
             <p style="font-size: 0.85rem; color: var(--text-muted);" id="audit-feedback-text">
-              Sua empresa está visível, mas está perdendo até 70% dos clientes potenciais que buscam no Google.
+              Sua empresa tem grande potencial na região, mas está deixando clientes na mesa por não ter um site profissional próprio.
             </p>
           </div>
         </div>
@@ -55,16 +71,16 @@
           <div class="audit-item positive">
             <i class="fa-regular fa-circle-check"></i>
             <div>
-              <strong style="display:block; color:var(--text-main); font-size: 0.95rem;">Empresa Listada no Google Maps</strong>
-              <span style="font-size: 0.85rem; color: var(--text-muted);" id="audit-maps-rating">Excelente avaliação média dos clientes locais.</span>
+              <strong style="display:block; color:var(--text-main); font-size: 0.95rem;" id="audit-item-1-title">Empresa Listada no Google Maps</strong>
+              <span style="font-size: 0.85rem; color: var(--text-muted);" id="audit-item-1-desc">Presença local identificada com bom potencial de crescimento.</span>
             </div>
           </div>
 
           <div class="audit-item negative">
             <i class="fa-regular fa-circle-xmark"></i>
             <div>
-              <strong style="display:block; color:var(--text-main); font-size: 0.95rem;">Nenhum Website Cadastrado</strong>
-              <span style="font-size: 0.85rem; color: var(--text-muted);">Clientes não conseguem ver seus serviços detalhados ou fechar negócios online direto pelo Maps.</span>
+              <strong style="display:block; color:var(--text-main); font-size: 0.95rem;" id="audit-item-2-title">Nenhum Website Próprio Cadastrado</strong>
+              <span style="font-size: 0.85rem; color: var(--text-muted);" id="audit-item-2-desc">Clientes não conseguem ver seus serviços detalhados ou fechar negócios online direto pelo Google.</span>
             </div>
           </div>
 
@@ -72,7 +88,7 @@
             <i class="fa-regular fa-circle-xmark"></i>
             <div>
               <strong style="display:block; color:var(--text-main); font-size: 0.95rem;">Sem Otimização de Busca Local (SEO)</strong>
-              <span style="font-size: 0.85rem; color: var(--text-muted);">Empresas concorrentes com sites aparecem no topo das buscas orgânicas do Google, roubando sua audiência.</span>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Empresas concorrentes com sites aparecem no topo das buscas do Google, capturando clientes prontos para comprar.</span>
             </div>
           </div>
 
@@ -80,7 +96,7 @@
             <i class="fa-regular fa-circle-xmark"></i>
             <div>
               <strong style="display:block; color:var(--text-main); font-size: 0.95rem;">Ausência de Canal de Contato 24h</strong>
-              <span style="font-size: 0.85rem; color: var(--text-muted);">Fora do horário comercial, seus clientes não encontram uma forma de enviar solicitações ou dúvidas.</span>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Fora do horário comercial, seus clientes não encontram uma página organizada para conhecer seus serviços e pedir orçamento.</span>
             </div>
           </div>
         </div>
@@ -91,66 +107,45 @@
         <h2 style="font-size: 1.6rem; margin-bottom: 0.5rem; color: var(--text-main);">
           Demonstração do Seu Futuro Site
         </h2>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem;">
-          Desenvolvemos este conceito interativo com a marca da sua empresa. Veja como ele se adapta no celular.
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+          Desenvolvemos este conceito interativo com a identidade da sua empresa. Role a tela do celular abaixo para navegar!
         </p>
 
         <!-- DISPOSITIVO DE SIMULAÇÃO -->
-        <div class="device-mockup">
+        <div class="device-mockup" id="device-mockup-capture">
           <div class="device-screen">
             <div class="iframe-simulation">
-              
+
               <!-- Sim Nav -->
               <div class="sim-nav">
                 <span class="sim-brand" id="sim-nav-brand">Empresa</span>
                 <i class="fa-solid fa-bars"></i>
               </div>
-              
+
               <!-- Sim Hero -->
-              <div class="sim-hero">
-                <div class="sim-badge"><i class="fa-solid fa-circle-check"></i> Aberto Agora</div>
+              <div class="sim-hero" id="sim-hero-section">
+                <div class="sim-badges-row">
+                  <div class="sim-badge"><i class="fa-solid fa-circle-check"></i> Aberto Agora</div>
+                  <div class="sim-ig-pill" id="sim-ig-pill" style="display: none;">
+                    <i class="fa-brands fa-instagram"></i> <span>@empresa</span>
+                  </div>
+                </div>
                 <h2 id="sim-hero-title">Nome da Empresa</h2>
                 <p id="sim-hero-desc">Soluções profissionais e atendimento de excelência para você e sua família.</p>
                 <button class="sim-btn" id="sim-hero-btn"><i class="fa-brands fa-whatsapp"></i> Falar no WhatsApp</button>
               </div>
-              
-              <!-- Sim Services (Nossos Serviços / Diferenciais) -->
+
+              <!-- Sim Services -->
               <div class="sim-services-section">
-                <h3 class="sim-section-title">Serviços Disponíveis</h3>
+                <h3 class="sim-section-title">Serviços &amp; Especialidades</h3>
                 <div class="sim-services-grid" id="sim-services-container">
-                  <!-- Injetado dinamicamente dependendo da categoria -->
+                  <!-- Injetado dinamicamente -->
                 </div>
               </div>
 
-              <!-- Sim Reviews (Depoimentos do Google) -->
-              <div class="sim-reviews-section">
-                <h3 class="sim-section-title">Avaliações dos Clientes</h3>
-                <div class="sim-review-summary">
-                  <div class="sim-review-score" id="sim-review-score-stars">4.5 ⭐</div>
-                  <div style="font-size: 0.65rem; color: var(--text-dimmed);" id="sim-review-count">baseado em 120 opiniões no Google Maps</div>
-                </div>
-                
-                <div class="sim-review-card">
-                  <div class="sim-reviewer-info">
-                    <div class="sim-reviewer-avatar">M</div>
-                    <div>
-                      <div class="sim-reviewer-name">Maria Silva</div>
-                      <div class="sim-reviewer-stars">⭐⭐⭐⭐⭐</div>
-                    </div>
-                  </div>
-                  <p class="sim-reviewer-text">Melhor atendimento da região! Fui super bem atendida e recomendo muito.</p>
-                </div>
-                
-                <div class="sim-review-card">
-                  <div class="sim-reviewer-info">
-                    <div class="sim-reviewer-avatar">J</div>
-                    <div>
-                      <div class="sim-reviewer-name">João Souza</div>
-                      <div class="sim-reviewer-stars">⭐⭐⭐⭐⭐</div>
-                    </div>
-                  </div>
-                  <p class="sim-reviewer-text">Serviço de altíssima qualidade, preço justo e entrega super rápida. Nota 10!</p>
-                </div>
+              <!-- Sim Reviews / Prova Social -->
+              <div class="sim-reviews-section" id="sim-reviews-container">
+                <!-- Injetado dinamicamente dependendo da origem (Instagram ou Google Maps) -->
               </div>
 
               <!-- Sim Footer -->
@@ -158,16 +153,16 @@
                 <div class="sim-footer-info">
                   <p><i class="fa-solid fa-location-dot"></i> <span id="sim-footer-address">Endereço da Empresa</span></p>
                   <p><i class="fa-solid fa-phone"></i> <span id="sim-footer-phone">Telefone da Empresa</span></p>
-                  <p><i class="fa-solid fa-clock"></i> Segunda a Sábado: 08:00 às 18:00</p>
+                  <p><i class="fa-solid fa-clock"></i> <span id="sim-hours">Segunda a Sábado: 08:00 às 18:00</span></p>
                 </div>
                 <p style="font-size: 0.55rem; color: var(--text-dimmed); margin-top: 1.2rem;">© 2026 Todos os direitos reservados.</p>
               </div>
 
-              <!-- Sim Floating WhatsApp Button -->
-              <div class="sim-whatsapp-widget" id="sim-whatsapp-widget-btn">
-                <i class="fa-brands fa-whatsapp"></i>
-              </div>
+            </div>
 
+            <!-- Sim Floating WhatsApp Button (fixo sobre a tela do celular) -->
+            <div class="sim-whatsapp-widget" id="sim-whatsapp-widget-btn">
+              <i class="fa-brands fa-whatsapp"></i>
             </div>
           </div>
         </div>
@@ -179,7 +174,7 @@
     <div class="pricing-section">
       <h2 class="pricing-title">Escolha o Melhor Plano para Sua Empresa</h2>
       <p class="pricing-subtitle">Opções flexíveis de acordo com a sua preferência e orçamento.</p>
-      
+
       <div class="pricing-grid">
         <!-- Plano Assinatura -->
         <div class="pricing-card featured">
@@ -198,8 +193,11 @@
             <li><i class="fa-solid fa-check"></i> Suporte técnico via WhatsApp</li>
             <li><i class="fa-solid fa-check"></i> Alterações mensais inclusas</li>
           </ul>
+          <button type="button" class="card-btn btn-primary" onclick="acceptProposal('Plano Recorrência (R$ 89,90/mês)')">
+            <i class="fa-brands fa-whatsapp"></i> Escolher Plano Mensal
+          </button>
         </div>
-        
+
         <!-- Plano Único -->
         <div class="pricing-card">
           <div class="pricing-header">
@@ -216,6 +214,9 @@
             <li><i class="fa-solid fa-check"></i> O site é seu para sempre (código entregue)</li>
             <li><i class="fa-solid fa-check"></i> 30 dias de suporte pós-entrega</li>
           </ul>
+          <button type="button" class="card-btn btn-secondary" onclick="acceptProposal('Plano Profissional Único (R$ 790,00)')">
+            <i class="fa-brands fa-whatsapp"></i> Escolher Pagamento Único
+          </button>
         </div>
       </div>
     </div>
@@ -226,12 +227,12 @@
       <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 2rem;">
         Podemos colocar este site no ar com seu próprio domínio (ex: www.suaempresa.com.br) e integrar todos os seus canais em menos de 7 dias. Aumente suas vendas hoje mesmo.
       </p>
-      
+
       <div class="cta-buttons">
         <button id="cta-accept-btn" onclick="acceptProposal()" class="cta-btn-whatsapp">
           <i class="fa-brands fa-whatsapp"></i> Quero Garantir Meu Site Profissional!
         </button>
-        <button id="cta-negotiate-btn" onclick="negotiateDetails()" class="card-btn btn-secondary" style="padding: 1rem 2rem; font-size: 1.05rem; border-radius: var(--radius-md)">
+        <button id="cta-negotiate-btn" onclick="negotiateDetails()" class="card-btn btn-secondary" style="padding: 1rem 2rem; font-size: 1.05rem; border-radius: var(--radius-md); flex: 0 0 auto;">
           Conversar sobre Ajustes
         </button>
       </div>
