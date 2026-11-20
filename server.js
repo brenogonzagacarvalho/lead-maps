@@ -13,8 +13,15 @@ import {
   findDuplicateLead,
   recordProposalView,
   normalizeInstagram,
-  normalizePhoneDigits
+  normalizePhoneDigits,
+  runInTransaction
 } from './database.js';
+import {
+  parseCsvText,
+  autoMapCsvHeaders,
+  mapCsvRowsToLeads,
+  findMatchingLead
+} from './public/js/csv-core.js';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -176,9 +183,22 @@ REGRAS OBRIGATÓRIAS:
 6. "rating" deve ser número (ex: 4.8 ou 0) e "user_ratings_total" deve ser inteiro (ex: 120 ou 0).`;
 }
 
+const DEFAULT_GEMINI_MODELS = [
+  'gemini-flash-latest',
+  'gemini-flash-lite-latest',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite'
+];
+
 async function callGeminiVision({ apiKey, model, prompt, parsedImages }) {
+  const envModel = (process.env.GEMINI_MODEL || '').trim();
   const candidates = Array.from(
-    new Set([model, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'].filter(Boolean))
+    new Set(
+      [model, envModel, ...DEFAULT_GEMINI_MODELS]
+        .filter(Boolean)
+        .map(m => String(m).trim().replace(/^models\//i, ''))
+        .filter(Boolean)
+    )
   );
 
   const imageParts = parsedImages.map(img => ({
@@ -191,26 +211,38 @@ async function callGeminiVision({ apiKey, model, prompt, parsedImages }) {
   let lastError = null;
 
   for (const candidateModel of candidates) {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(candidateModel)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: prompt }, ...imageParts]
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(candidateModel)}:generateContent`;
+    let response;
+    try {
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-goog-api-key': apiKey
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: prompt }, ...imageParts]
+            }
+          ],
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.1
           }
-        ],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.1
-        }
-      })
-    });
+        }),
+        signal: AbortSignal.timeout(25000)
+      });
+    } catch (err) {
+      lastError = new Error(`Modelo Gemini "${candidateModel}" falhou (${err.message})`);
+      console.warn(`[Gemini Vision] Modelo "${candidateModel}" indisponível (${err.message}), tentando fallback...`);
+      continue;
+    }
 
-    if (response.status === 404) {
+    if (response.status === 404 || response.status === 429 || response.status === 503) {
       const errText = await response.text();
-      lastError = new Error(`Modelo Gemini "${candidateModel}" indisponível (404): ${errText}`);
+      lastError = new Error(`Modelo Gemini "${candidateModel}" indisponível (${response.status}): ${errText}`);
+      console.warn(`[Gemini Vision] Modelo "${candidateModel}" indisponível (${response.status}), tentando fallback...`);
       continue;
     }
 
@@ -220,7 +252,11 @@ async function callGeminiVision({ apiKey, model, prompt, parsedImages }) {
     }
 
     const data = await response.json();
-    const rawText = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('\n') || '';
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const answerParts = parts.filter(p => !p.thought && typeof p.text === 'string');
+    const rawText = (answerParts.length > 0 ? answerParts : parts)
+      .map(p => p.text || '')
+      .join('\n');
     return {
       parsed: parseJsonFromModelText(rawText),
       usedModel: candidateModel
@@ -393,7 +429,8 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     hasEnvGeminiKey: Boolean(process.env.GEMINI_API_KEY),
     hasEnvOpenAiKey: Boolean(process.env.OPENAI_API_KEY),
-    hasEnvPlacesKey: Boolean(process.env.GOOGLE_PLACES_API_KEY)
+    hasEnvPlacesKey: Boolean(process.env.GOOGLE_PLACES_API_KEY),
+    defaultGeminiModel: (process.env.GEMINI_MODEL || 'gemini-flash-latest').trim()
   });
 });
 
@@ -463,28 +500,180 @@ app.post('/api/leads/bulk', (req, res) => {
     const imported = [];
     const skipped = [];
 
-    for (const item of leadsInput) {
-      if (!item || !item.name || !String(item.name).trim()) {
-        skipped.push({ item, reason: 'invalid_name' });
-        continue;
-      }
-
-      try {
-        const result = createLead(item);
-        const { _duplicate, ...lead } = result;
-        if (_duplicate) {
-          skipped.push({ name: lead.name, existingId: lead.id, reason: 'duplicate' });
-        } else {
-          imported.push(lead);
+    runInTransaction(() => {
+      for (const item of leadsInput) {
+        if (!item || !item.name || !String(item.name).trim()) {
+          skipped.push({ item, reason: 'invalid_name' });
+          continue;
         }
-      } catch (err) {
-        skipped.push({ name: item.name, reason: err.message });
+
+        try {
+          const result = createLead(item);
+          const { _duplicate, ...lead } = result;
+          if (_duplicate) {
+            skipped.push({ name: lead.name, existingId: lead.id, reason: 'duplicate' });
+          } else {
+            imported.push(lead);
+          }
+        } catch (err) {
+          skipped.push({ name: item.name, reason: err.message });
+        }
       }
-    }
+    });
 
     res.json({ imported, skipped });
   } catch (error) {
     res.status(500).json({ error: 'Erro na importação em lote', details: error.message });
+  }
+});
+
+// Importar leads a partir de texto CSV (suporta dryRun para prévia/validação)
+app.post('/api/leads/import-csv', (req, res) => {
+  try {
+    const {
+      csvText,
+      filename = 'importacao.csv',
+      delimiter = null,
+      mapping = null,
+      dryRun = false,
+      skipWithWebsite = true,
+      onlyWithContact = false,
+      defaultStatus = 'novo'
+    } = req.body || {};
+
+    if (!csvText || typeof csvText !== 'string' || !csvText.trim()) {
+      return res.status(400).json({ error: 'Conteúdo CSV ("csvText") é obrigatório.' });
+    }
+
+    const parsed = parseCsvText(csvText, delimiter || null);
+    if (parsed.headers.length === 0 || parsed.rows.length === 0) {
+      return res.status(400).json({ error: 'CSV vazio ou sem linhas de dados.' });
+    }
+
+    const resolvedMapping =
+      mapping && typeof mapping === 'object' ? mapping : autoMapCsvHeaders(parsed.headers);
+
+    if (
+      resolvedMapping.name === undefined ||
+      resolvedMapping.name === null ||
+      Number(resolvedMapping.name) < 0
+    ) {
+      return res.status(400).json({
+        error: 'Coluna de nome da empresa não identificada no CSV.',
+        headers: parsed.headers,
+        mapping: resolvedMapping
+      });
+    }
+
+    const mapped = mapCsvRowsToLeads(parsed.headers, parsed.rows, resolvedMapping, {
+      filename,
+      defaultStatus
+    });
+
+    const eligibleItems = [];
+    const skipped = [];
+    let invalidCount = 0;
+    let filteredWebsiteCount = 0;
+    let filteredNoContactCount = 0;
+    let duplicateCount = 0;
+
+    for (const item of mapped) {
+      if (!item.valid) {
+        invalidCount++;
+        skipped.push({ rowNumber: item._rowNumber, name: item.name || '', reason: 'invalid_name' });
+        continue;
+      }
+
+      if (skipWithWebsite && item.has_website) {
+        filteredWebsiteCount++;
+        skipped.push({ rowNumber: item._rowNumber, name: item.name, reason: 'has_website' });
+        continue;
+      }
+
+      const phoneType = classifyBrPhone(item.phone);
+      const hasContact =
+        Boolean(item.instagram) || phoneType === 'celular' || phoneType === 'fixo';
+      if (onlyWithContact && !hasContact) {
+        filteredNoContactCount++;
+        skipped.push({ rowNumber: item._rowNumber, name: item.name, reason: 'no_contact' });
+        continue;
+      }
+
+      const existing = findDuplicateLead(item);
+      if (existing) {
+        duplicateCount++;
+        skipped.push({
+          rowNumber: item._rowNumber,
+          name: item.name,
+          existingId: existing.id,
+          reason: 'duplicate'
+        });
+        continue;
+      }
+
+      if (dryRun && findMatchingLead(item, eligibleItems)) {
+        duplicateCount++;
+        skipped.push({ rowNumber: item._rowNumber, name: item.name, reason: 'duplicate_in_csv' });
+        continue;
+      }
+
+      eligibleItems.push(item);
+    }
+
+    if (dryRun) {
+      return res.json({
+        dryRun: true,
+        delimiter: parsed.delimiter,
+        headers: parsed.headers,
+        mapping: resolvedMapping,
+        summary: {
+          totalRows: mapped.length,
+          eligible: eligibleItems.length,
+          duplicates: duplicateCount,
+          withWebsite: filteredWebsiteCount,
+          withoutContact: filteredNoContactCount,
+          invalid: invalidCount
+        },
+        preview: mapped.slice(0, 50)
+      });
+    }
+
+    const imported = [];
+    runInTransaction(() => {
+      for (const item of eligibleItems) {
+        const result = createLead(item);
+        const { _duplicate, ...lead } = result;
+        if (_duplicate) {
+          duplicateCount++;
+          skipped.push({
+            rowNumber: item._rowNumber,
+            name: lead.name,
+            existingId: lead.id,
+            reason: 'duplicate'
+          });
+        } else {
+          imported.push(lead);
+        }
+      }
+    });
+
+    res.json({
+      dryRun: false,
+      delimiter: parsed.delimiter,
+      mapping: resolvedMapping,
+      imported,
+      skipped,
+      summary: {
+        totalRows: mapped.length,
+        importedCount: imported.length,
+        duplicateCount,
+        filteredWebsiteCount,
+        filteredNoContactCount,
+        invalidCount
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao importar CSV', details: error.message });
   }
 });
 
@@ -571,10 +760,12 @@ app.post('/api/extract-from-print', async (req, res) => {
     }
 
     const normalizedProvider = provider === 'openai' ? 'openai' : 'gemini';
-    const resolvedKey =
+    const resolvedKey = String(
       apiKey ||
       req.headers['x-ai-api-key'] ||
-      (normalizedProvider === 'openai' ? process.env.OPENAI_API_KEY : process.env.GEMINI_API_KEY);
+      (normalizedProvider === 'openai' ? process.env.OPENAI_API_KEY : process.env.GEMINI_API_KEY) ||
+      ''
+    ).trim();
 
     if (!resolvedKey) {
       return res.status(400).json({
@@ -607,6 +798,7 @@ app.post('/api/extract-from-print', async (req, res) => {
     }
 
     const rawBusinesses = [];
+    const usedModels = new Set();
 
     if (mode === 'merge_single') {
       try {
@@ -625,6 +817,7 @@ app.post('/api/extract-from-print', async (req, res) => {
                 parsedImages: validEntries.map(e => e.parsed)
               });
 
+        if (result.usedModel) usedModels.add(result.usedModel);
         const list = Array.isArray(result.parsed?.businesses) ? result.parsed.businesses : [];
         rawBusinesses.push(...list);
       } catch (err) {
@@ -657,7 +850,7 @@ app.post('/api/extract-from-print', async (req, res) => {
                     });
 
               const list = Array.isArray(result.parsed?.businesses) ? result.parsed.businesses : [];
-              return { ok: true, filename: entry.filename, businesses: list };
+              return { ok: true, filename: entry.filename, businesses: list, usedModel: result.usedModel };
             } catch (err) {
               return { ok: false, filename: entry.filename, error: err.message };
             }
@@ -666,6 +859,7 @@ app.post('/api/extract-from-print', async (req, res) => {
 
         for (const outcome of batchOutcomes) {
           if (outcome.ok) {
+            if (outcome.usedModel) usedModels.add(outcome.usedModel);
             rawBusinesses.push(...outcome.businesses);
           } else {
             errors.push({ filename: outcome.filename, error: outcome.error });
@@ -679,6 +873,7 @@ app.post('/api/extract-from-print', async (req, res) => {
     res.json({
       businesses,
       processedImages: validEntries.length,
+      usedModels: Array.from(usedModels),
       errors
     });
   } catch (error) {

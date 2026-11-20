@@ -9,7 +9,8 @@ let state = {
     online: false,
     hasEnvGeminiKey: false,
     hasEnvOpenAiKey: false,
-    hasEnvPlacesKey: false
+    hasEnvPlacesKey: false,
+    defaultGeminiModel: 'gemini-flash-latest'
   },
   settings: {
     sellerName: 'Agência Web Express',
@@ -23,7 +24,7 @@ let state = {
     waLang: 'pt_BR',
     aiProvider: 'gemini',
     aiApiKey: '',
-    aiModel: 'gemini-2.5-flash',
+    aiModel: 'gemini-flash-latest',
     defaultCity: ''
   },
   currentLead: null,
@@ -181,7 +182,8 @@ async function checkBackendHealth() {
       online: true,
       hasEnvGeminiKey: Boolean(data.hasEnvGeminiKey),
       hasEnvOpenAiKey: Boolean(data.hasEnvOpenAiKey),
-      hasEnvPlacesKey: Boolean(data.hasEnvPlacesKey)
+      hasEnvPlacesKey: Boolean(data.hasEnvPlacesKey),
+      defaultGeminiModel: data.defaultGeminiModel || 'gemini-flash-latest'
     };
 
     badge.className = 'status-pill online';
@@ -268,7 +270,7 @@ function openModal(modalId) {
     document.getElementById('config-ai-provider').value = state.settings.aiProvider || 'gemini';
     document.getElementById('config-ai-api-key').value = state.settings.aiApiKey || '';
     document.getElementById('config-ai-model').value =
-      state.settings.aiModel || (state.settings.aiProvider === 'openai' ? 'gpt-4o-mini' : 'gemini-2.5-flash');
+      state.settings.aiModel || (state.settings.aiProvider === 'openai' ? 'gpt-4o-mini' : 'gemini-flash-latest');
     document.getElementById('config-default-city').value = state.settings.defaultCity || '';
 
     document.getElementById('config-seller-name').value = state.settings.sellerName || '';
@@ -298,9 +300,9 @@ function handleAiProviderChange() {
     modelInput.placeholder = 'gpt-4o-mini';
   } else {
     if (!modelInput.value || modelInput.value.startsWith('gpt')) {
-      modelInput.value = 'gemini-2.5-flash';
+      modelInput.value = 'gemini-flash-latest';
     }
-    modelInput.placeholder = 'gemini-2.5-flash';
+    modelInput.placeholder = 'gemini-flash-latest';
   }
 }
 
@@ -340,6 +342,11 @@ function loadSettings() {
   if (saved) {
     try {
       state.settings = { ...state.settings, ...JSON.parse(saved) };
+      const legacyGeminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'];
+      if (state.settings.aiProvider !== 'openai' && legacyGeminiModels.includes(state.settings.aiModel)) {
+        state.settings.aiModel = 'gemini-flash-latest';
+        localStorage.setItem('maps_analyzer_settings', JSON.stringify(state.settings));
+      }
     } catch {
       // mantém defaults
     }
@@ -368,7 +375,7 @@ async function saveSettings(event) {
   state.settings.aiApiKey = document.getElementById('config-ai-api-key').value.trim();
   state.settings.aiModel =
     document.getElementById('config-ai-model').value.trim() ||
-    (provider === 'openai' ? 'gpt-4o-mini' : 'gemini-2.5-flash');
+    (provider === 'openai' ? 'gpt-4o-mini' : 'gemini-flash-latest');
   state.settings.defaultCity = document.getElementById('config-default-city').value.trim();
 
   state.settings.sellerName = document.getElementById('config-seller-name').value.trim();
@@ -1806,6 +1813,9 @@ async function loadCrmLeads() {
     state.crmLeads = await response.json();
     populateCrmCategoryFilter();
     renderKanban();
+    if (typeof window.refreshCsvDuplicatePreview === 'function') {
+      window.refreshCsvDuplicatePreview();
+    }
   } catch (error) {
     console.error('Erro ao carregar CRM:', error);
     showToast('Erro ao atualizar funil do CRM', true);
@@ -1855,9 +1865,16 @@ function matchCrmSearch(lead, searchTerm) {
 
 function matchCrmSource(lead, sourceFilter) {
   if (sourceFilter === 'all') return true;
+  if (sourceFilter === 'csv') return lead.source === 'csv';
   const isIg = lead.source === 'instagram' || Boolean(lead.instagram);
   if (sourceFilter === 'instagram') return isIg;
-  if (sourceFilter === 'google_maps') return !isIg;
+  if (sourceFilter === 'google_maps') {
+    return (
+      lead.source === 'google_maps' ||
+      lead.source === 'openstreetmap' ||
+      (!lead.source && !lead.instagram)
+    );
+  }
   return true;
 }
 
@@ -1903,8 +1920,15 @@ function renderKanban() {
     card.innerHTML = `
       <div class="crm-meta-row">
         ${
+          lead.source === 'csv'
+            ? `<span class="crm-mini-badge badge-source-csv"><i class="fa-solid fa-file-csv"></i> CSV</span>`
+            : ''
+        }
+        ${
           isInstagram
             ? `<span class="crm-mini-badge badge-source-ig"><i class="fa-brands fa-instagram"></i> ${escapeHtml(lead.instagram || 'Insta')}</span>`
+            : lead.source === 'csv'
+            ? ''
             : `<span class="crm-mini-badge" style="background: rgba(56,189,248,0.14); color: var(--accent-blue);"><i class="fa-solid fa-map-pin"></i> Maps</span>`
         }
         ${
@@ -2584,3 +2608,6 @@ function skipQuickPitch() {
   }
   renderQuickPitchCurrent();
 }
+
+window.getCrmLeadsList = () => state.crmLeads;
+window.getDefaultImportCity = () => state.settings.defaultCity || '';

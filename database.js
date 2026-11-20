@@ -315,3 +315,19 @@ export function deleteLead(id) {
   const res = stmt.run(id);
   return res.changes > 0;
 }
+
+export function runInTransaction(fn) {
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const result = fn();
+    db.exec('COMMIT');
+    return result;
+  } catch (err) {
+    try {
+      db.exec('ROLLBACK');
+    } catch {
+      // ignora erro de rollback se transação já estiver encerrada
+    }
+    throw err;
+  }
+}
