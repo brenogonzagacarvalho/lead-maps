@@ -173,6 +173,13 @@ function loadProposalFromParams(params) {
   }
 }
 
+function isRestaurantNiche(textHint) {
+  const lower = (textHint || '').toLowerCase();
+  return /(restaur|self[\s-]?service|churrasc|pizz|hamburg|lanche|sushi|japon|acai|açaí|padar|doceria|confeit|delivery|food|gastron|culinar|culinár|caseir|espetar|nordestin|bistr|grill|frutos do mar|cafeter|cantina|\bbar\b)/.test(
+    lower
+  );
+}
+
 function getDefaultServicesByNiche(textHint) {
   const lower = (textHint || '').toLowerCase();
 
@@ -208,11 +215,23 @@ function getDefaultServicesByNiche(textHint) {
     ];
   }
 
-  if (/(restaur|pizz|hamburg|lanche|sushi|acai|açaí|padar|doceria|confeit|delivery|food|gastron)/.test(lower)) {
+  if (isRestaurantNiche(lower)) {
     return [
-      { title: 'Cardápio Atualizado', desc: 'Pratos, combos e promoções em destaque para pedir sem complicação.', icon: 'fa-solid fa-utensils' },
-      { title: 'Pedido Rápido', desc: 'Atendimento ágil para retirada no balcão ou delivery na região.', icon: 'fa-solid fa-motorcycle' },
-      { title: 'Eventos & Encomendas', desc: 'Condições especiais para confraternizações e pedidos sob medida.', icon: 'fa-solid fa-champagne-glasses' }
+      {
+        title: 'Cardápio Digital Organizado',
+        desc: 'Pratos do dia, combos e especialidades fáceis de ler no celular, sem fotos antigas ou confusas.',
+        icon: 'fa-solid fa-utensils'
+      },
+      {
+        title: 'Pedido no WhatsApp (Sem Taxa)',
+        desc: 'Delivery, marmitas e retirada no balcão direto com vocês, sem comissão de aplicativo.',
+        icon: 'fa-solid fa-motorcycle'
+      },
+      {
+        title: 'Reservas, Grupos & Eventos',
+        desc: 'Praticidade para famílias, turistas e empresas reservarem mesa ou fazerem encomendas.',
+        icon: 'fa-solid fa-champagne-glasses'
+      }
     ];
   }
 
@@ -339,6 +358,72 @@ function renderMockupReviewsSection(isInstagram) {
   `;
 }
 
+function renderWhyWebsiteSection(isRestaurant) {
+  const titleEl = document.getElementById('proposal-why-title');
+  const subtitleEl = document.getElementById('proposal-why-subtitle');
+  const gridEl = document.getElementById('proposal-why-grid');
+  if (!gridEl) return;
+
+  if (titleEl) {
+    titleEl.innerText = isRestaurant
+      ? 'Por que ter uma página própria se o restaurante já está no Google Maps?'
+      : 'Por que ter um site próprio se você já está no Google Maps?';
+  }
+  if (subtitleEl) {
+    subtitleEl.innerText = isRestaurant
+      ? 'O Maps atrai quem procura onde comer; a página própria transforma essa busca em pedidos e reservas sem taxa de aplicativo.'
+      : 'O Google Maps não é substituído — o site trabalha junto com ele para transformar visitas em clientes diretos.';
+  }
+
+  const cards = isRestaurant
+    ? [
+        {
+          icon: 'fa-solid fa-map-location-dot',
+          title: 'O Maps traz a visita — o site fecha o pedido',
+          desc: 'No Google Maps seus concorrentes aparecem logo abaixo do seu perfil. No seu site, o cliente vê só a sua marca, seus pratos e o botão de pedir ou reservar.'
+        },
+        {
+          icon: 'fa-solid fa-percent',
+          title: 'Mais margem sem taxa de 12% a 27%',
+          desc: 'Direcione delivery, marmitas e encomendas para o seu WhatsApp próprio. Recuperar poucos pedidos por mês fora de aplicativos já paga o investimento.'
+        },
+        {
+          icon: 'fa-solid fa-bolt',
+          title: 'Menos travamento no horário de pico',
+          desc: 'Cardápio atualizado, horários, endereço e botão de reserva no celular 24h — ideal para clientes do bairro, grupos e turistas.'
+        }
+      ]
+    : [
+        {
+          icon: 'fa-solid fa-map-location-dot',
+          title: 'O Maps traz a visita — o site fecha o cliente',
+          desc: 'No Google Maps seus concorrentes aparecem na mesma tela. No seu site, o cliente foca 100% no seu trabalho e chama no WhatsApp em 1 clique.'
+        },
+        {
+          icon: 'fa-solid fa-magnifying-glass-chart',
+          title: 'Mais autoridade e buscas no Google',
+          desc: 'Empresas com página própria passam mais confiança antes do contato e fortalecem o ranqueamento local no Google e no próprio Maps.'
+        },
+        {
+          icon: 'fa-solid fa-shield-halved',
+          title: 'Canal 100% seu, funcionando 24h',
+          desc: 'Redes sociais podem cair e o perfil do Maps é limitado. Seu site organiza serviços, provas reais e capta orçamentos mesmo fora do horário comercial.'
+        }
+      ];
+
+  gridEl.innerHTML = cards
+    .map(
+      card => `
+        <div class="proposal-why-card">
+          <div class="proposal-why-icon"><i class="${escapeHtml(card.icon)}"></i></div>
+          <h3>${escapeHtml(card.title)}</h3>
+          <p>${escapeHtml(card.desc)}</p>
+        </div>
+      `
+    )
+    .join('');
+}
+
 // Renderizar elementos na página
 function renderProposalUI() {
   if (isPreviewMode) {
@@ -353,12 +438,20 @@ function renderProposalUI() {
   const isInstagram =
     proposalState.leadSource === 'instagram' ||
     (Boolean(proposalState.leadInstagram) && (!proposalState.leadRating || proposalState.leadRating === 0));
+  const nicheHint = `${proposalState.leadCategory} ${proposalState.leadName} ${proposalState.leadBio}`;
+  const isRestaurant = isRestaurantNiche(nicheHint);
 
   // Atualizar Textos Principais
   document.getElementById('proposal-heading').innerText = `Análise Comercial: ${proposalState.leadName}`;
-  document.getElementById('proposal-subheading').innerText = isInstagram
-    ? `Preparamos um diagnóstico digital e um conceito exclusivo de site para transformar seguidores da ${proposalState.leadName} em clientes todos os dias.`
-    : `Preparamos um diagnóstico de presença no Google Maps e um conceito de site exclusivo para a ${proposalState.leadName}.`;
+  if (isRestaurant) {
+    document.getElementById('proposal-subheading').innerText = isInstagram
+      ? `Preparamos um diagnóstico digital e uma página exclusiva de cardápio e pedidos para transformar seguidores da ${proposalState.leadName} em clientes no WhatsApp, sem taxa de aplicativo.`
+      : `O Google Maps já traz clientes até a ${proposalState.leadName} — veja como transformar essas visitas em pedidos no WhatsApp e reservas diretas, sem pagar comissão de aplicativos.`;
+  } else {
+    document.getElementById('proposal-subheading').innerText = isInstagram
+      ? `Preparamos um diagnóstico digital e um conceito exclusivo de site para transformar seguidores da ${proposalState.leadName} em clientes todos os dias.`
+      : `Preparamos um diagnóstico de presença no Google Maps e um conceito de site exclusivo para a ${proposalState.leadName}.`;
+  }
 
   // Pontuação e Diagnóstico
   let score = isInstagram ? 45 : 40;
@@ -383,20 +476,24 @@ function renderProposalUI() {
       ? `${proposalState.leadFollowers} — seu público já acompanha a loja por lá, mas depende apenas da rede social.`
       : 'Seu público já acompanha a empresa no Instagram, mas ainda falta um endereço próprio fora das redes sociais.';
 
-    document.getElementById('audit-item-2-title').innerText = 'Sem Site Próprio na Bio';
+    document.getElementById('audit-item-2-title').innerText = isRestaurant
+      ? 'Sem Página Própria de Cardápio & Pedidos na Bio'
+      : 'Sem Site Próprio na Bio';
     document.getElementById('audit-item-2-desc').innerText = proposalState.leadBioLink
-      ? 'Hoje o link da bio direciona para um agregador/WhatsApp genérico, sem apresentar seus serviços e autoridade antes do contato.'
-      : 'Quem encontra seu perfil ou pesquisa pelo seu serviço no Google não encontra um site oficial para fechar orçamento.';
+      ? 'Hoje o link da bio direciona para um agregador/WhatsApp genérico, sem apresentar seus diferenciais e autoridade antes do contato.'
+      : 'Quem encontra seu perfil ou pesquisa no Google não encontra um site oficial para conhecer sua oferta e fechar pedido.';
 
-    document.getElementById('audit-feedback-text').innerText =
-      'Sua marca já gera atenção no Instagram, mas sem um site próprio você perde buscas do Google e deixa dinheiro na mesa.';
+    document.getElementById('audit-feedback-text').innerText = isRestaurant
+      ? 'Sua marca já gera atenção no Instagram, mas sem uma página própria de cardápio você perde pedidos diretos e buscas do Google.'
+      : 'Sua marca já gera atenção no Instagram, mas sem um site próprio você perde buscas do Google e deixa dinheiro na mesa.';
   } else {
     document.getElementById('audit-item-1-title').innerText = 'Empresa Listada no Google Maps';
     if (proposalState.leadRating > 0) {
       document.getElementById('audit-item-1-desc').innerText =
         `Sua empresa possui avaliação média de ${proposalState.leadRating} ⭐ baseada em ${proposalState.leadReviews} comentários no Google Maps.`;
-      document.getElementById('audit-feedback-text').innerText =
-        `Sua empresa tem ótimos feedbacks (${proposalState.leadRating}★), mas sua visibilidade orgânica está limitada por não ter um site.`;
+      document.getElementById('audit-feedback-text').innerText = isRestaurant
+        ? `Vocês já têm ótimas avaliações (${proposalState.leadRating}★), mas quem acha o perfil no Maps não encontra um site/cardápio para pedir ou reservar direto.`
+        : `Sua empresa tem ótimos feedbacks (${proposalState.leadRating}★), mas sem um site cadastrado parte das visitas do Maps acaba indo para concorrentes.`;
     } else {
       document.getElementById('audit-item-1-desc').innerText =
         'Sua empresa já aparece nas buscas locais do Google Maps para clientes da região.';
@@ -404,14 +501,42 @@ function renderProposalUI() {
         'Sua empresa já está visível no Google, mas sem um site cadastrado concorrentes acabam ficando com a maioria dos cliques.';
     }
 
-    document.getElementById('audit-item-2-title').innerText = 'Nenhum Website Próprio Cadastrado';
-    document.getElementById('audit-item-2-desc').innerText =
-      'Clientes não conseguem ver seus serviços detalhados ou solicitar orçamento online direto pelo Google.';
+    if (isRestaurant) {
+      document.getElementById('audit-item-2-title').innerText = 'Botão "Site / Cardápio" Sem Página Própria';
+      document.getElementById('audit-item-2-desc').innerText =
+        'Quem encontra vocês no Maps não vê os pratos organizados nem consegue pedir ou reservar em 1 clique — e o próprio Maps mostra concorrentes logo abaixo.';
+    } else {
+      document.getElementById('audit-item-2-title').innerText = 'Sem Site Próprio para Converter quem Vem do Maps';
+      document.getElementById('audit-item-2-desc').innerText =
+        'O Maps ajuda a localizar vocês, mas sem um site cadastrado o cliente não vê seus serviços em detalhes e o próprio Maps exibe concorrentes logo abaixo.';
+    }
+  }
+
+  if (isRestaurant) {
+    document.getElementById('audit-item-3-title').innerText = 'Margem Pressionada por Aplicativos (12% a 27%)';
+    document.getElementById('audit-item-3-desc').innerText =
+      'Sem canal próprio conectado ao Maps e Instagram, pedidos de delivery e marmitas acabam indo para aplicativos com comissão por venda.';
+    document.getElementById('audit-item-4-title').innerText = 'Perguntas Repetitivas no Horário de Pico';
+    document.getElementById('audit-item-4-desc').innerText =
+      'Clientes chamam só para pedir cardápio, preço ou horário. Uma página rápida no celular responde tudo e já envia o pedido pronto no WhatsApp.';
+  } else {
+    document.getElementById('audit-item-3-title').innerText = 'Buscas Locais Indo para Concorrentes com Site';
+    document.getElementById('audit-item-3-desc').innerText =
+      'Vincular um site com seus serviços e bairro fortalece o perfil no Maps e faz você aparecer também nas buscas normais do Google.';
+    document.getElementById('audit-item-4-title').innerText = 'Falta de Canal Próprio 24h para Orçamentos';
+    document.getElementById('audit-item-4-desc').innerText =
+      'Fora do horário comercial ou no horário de pico, uma página própria apresenta seus diferenciais e leva o cliente pronto para o WhatsApp.';
   }
 
   // --- MOCKUP INTERATIVO DO SITE ---
   document.getElementById('sim-nav-brand').innerText = formatBrandTitle(proposalState.leadName);
   document.getElementById('sim-hero-title').innerText = proposalState.leadName;
+  document.getElementById('sim-services-title').innerText = isRestaurant
+    ? 'Destaques do Cardápio & Pedidos'
+    : 'Serviços & Especialidades';
+  document.getElementById('sim-hero-btn').innerHTML = isRestaurant
+    ? '<i class="fa-brands fa-whatsapp"></i> Ver Cardápio &amp; Pedir'
+    : '<i class="fa-brands fa-whatsapp"></i> Falar no WhatsApp';
 
   const igPill = document.getElementById('sim-ig-pill');
   if (proposalState.leadInstagram) {
@@ -427,6 +552,11 @@ function renderProposalUI() {
   if (proposalState.leadBio && proposalState.leadBio.trim()) {
     const cleanBio = proposalState.leadBio.trim().replace(/\s+/g, ' ').slice(0, 170);
     document.getElementById('sim-hero-desc').innerText = cleanBio;
+  } else if (isRestaurant) {
+    document.getElementById('sim-hero-desc').innerText =
+      proposalState.leadRating > 0
+        ? `Gastronomia de referência em ${cleanRegion} (nota ${proposalState.leadRating}★ no Maps). Cardápio atualizado e pedido ou reserva direto no WhatsApp.`
+        : `Sabores selecionados em ${cleanRegion}. Confira o cardápio do dia e peça ou reserve sua mesa direto no WhatsApp.`;
   } else if (proposalState.leadRating > 0) {
     document.getElementById('sim-hero-desc').innerText =
       `Excelência em ${proposalState.leadCategory} na região de ${cleanRegion}. Qualidade reconhecida com nota ${proposalState.leadRating} no Google Maps.`;
@@ -440,7 +570,7 @@ function renderProposalUI() {
   document.getElementById('sim-hours').innerText = proposalState.leadOpeningHours || 'Segunda a Sábado: 08:00 às 18:00';
 
   // Gerar Serviços (prioridade para serviços extraídos do print pela IA)
-  const fallbackServices = getDefaultServicesByNiche(`${proposalState.leadCategory} ${proposalState.leadName} ${proposalState.leadBio}`);
+  const fallbackServices = getDefaultServicesByNiche(nicheHint);
   const extractedServices = Array.isArray(proposalState.leadServices) && proposalState.leadServices.length > 0
     ? proposalState.leadServices.map((item, idx) => ({
         title: item.title || `Serviço ${idx + 1}`,
@@ -464,12 +594,37 @@ function renderProposalUI() {
     servicesContainer.appendChild(card);
   });
 
-  // Renderizar seção de Avaliações / Diferenciais
+  // Renderizar seção de Avaliações / Diferenciais e Bloco "Por que ter um site além do Maps"
   renderMockupReviewsSection(isInstagram);
+  renderWhyWebsiteSection(isRestaurant);
+
+  // Adaptar CTA final por nicho
+  const ctaDesc = document.getElementById('proposal-cta-desc');
+  const ctaAcceptBtn = document.getElementById('cta-accept-btn');
+  if (isRestaurant) {
+    if (ctaDesc) {
+      ctaDesc.innerText =
+        'Conectamos esta página direto no botão "Site" do seu Google Maps e na bio do Instagram em até 7 dias — com domínio próprio, cardápio organizado e pedidos/reservas no WhatsApp sem taxa de aplicativo.';
+    }
+    if (ctaAcceptBtn) {
+      ctaAcceptBtn.innerHTML = '<i class="fa-brands fa-whatsapp"></i> Quero Minha Página de Cardápio &amp; Pedidos!';
+    }
+  } else {
+    if (ctaDesc) {
+      ctaDesc.innerText =
+        'Conectamos este site ao seu Google Maps e Instagram com domínio próprio (ex: www.suaempresa.com.br) em menos de 7 dias para transformar buscas locais em clientes.';
+    }
+    if (ctaAcceptBtn) {
+      ctaAcceptBtn.innerHTML = '<i class="fa-brands fa-whatsapp"></i> Quero Garantir Meu Site Profissional!';
+    }
+  }
 
   // Configurar botões simulados dentro do celular
   const handleSimAlert = () => {
-    alert(`[Simulação] Este botão abriria o WhatsApp da ${proposalState.leadName} (${proposalState.leadPhone || 'número da loja'}) com uma mensagem pronta de orçamento.`);
+    const actionLabel = isRestaurant ? 'pedido ou reserva' : 'orçamento';
+    alert(
+      `[Simulação] Este botão abriria o WhatsApp da ${proposalState.leadName} (${proposalState.leadPhone || 'número da loja'}) com uma mensagem pronta de ${actionLabel}.`
+    );
   };
 
   document.getElementById('sim-hero-btn').onclick = handleSimAlert;
@@ -479,14 +634,14 @@ function renderProposalUI() {
 // Ações do Cliente (Redirecionamento para o WhatsApp do Vendedor)
 function acceptProposal(selectedPlan = '') {
   const planNote = selectedPlan ? ` Tenho interesse no *${selectedPlan}*.` : '';
-  const text = `Olá! Recebi a proposta comercial da *${proposalState.sellerName}* e gostei muito do modelo de site personalizado para a *${proposalState.leadName}*.${planNote} Gostaria de avançar com o projeto!`;
+  const text = `Olá! Recebi a proposta comercial da *${proposalState.sellerName}* e gostei muito do modelo de página/site personalizado para a *${proposalState.leadName}*.${planNote} Gostaria de avançar com o projeto!`;
 
   const url = `https://api.whatsapp.com/send?phone=${proposalState.sellerWhatsapp}&text=${encodeURIComponent(text)}`;
   window.open(url, '_blank');
 }
 
 function negotiateDetails() {
-  const text = `Olá! Vi o diagnóstico de presença online da *${proposalState.leadName}* e o modelo de site interativo. Gostaria de tirar algumas dúvidas e ajustar alguns detalhes para prosseguirmos.`;
+  const text = `Olá! Vi o diagnóstico de presença online da *${proposalState.leadName}* e o modelo de página interativa. Gostaria de tirar algumas dúvidas e ajustar alguns detalhes para prosseguirmos.`;
 
   const url = `https://api.whatsapp.com/send?phone=${proposalState.sellerWhatsapp}&text=${encodeURIComponent(text)}`;
   window.open(url, '_blank');

@@ -60,27 +60,45 @@ Simulação de faturamento com base em uma rotina de **10 abordagens por dia** (
 
 ## 4. Roteiros de Abordagem Comercial (Scripts WhatsApp)
 
-### Roteiro A — Foco na Flexibilidade (Apresenta os 2 Planos)
+### Roteiro A — Foco na Flexibilidade (Negócios Locais em Geral)
 > *"Olá! Falo com o responsável ou proprietário da **[Nome da Empresa]**?*
 > 
-> *Vi o perfil de vocês no Google Maps com excelentes avaliações de clientes (**[Nota Estrelas]** estrelas)! Notei que vocês ainda não possuem um site profissional cadastrado lá. Hoje em dia, cerca de 70% das pessoas procuram o site de uma empresa local no Maps antes de comprar para passar mais confiança.*
+> *Vi o perfil de vocês no Google Maps com excelentes avaliações de clientes (**[Nota Estrelas]** estrelas)! O Maps já ajuda os clientes a encontrarem vocês, mas notei que ainda não há um site próprio cadastrado lá. Hoje, sem um site no botão do perfil, quem encontra vocês vê concorrentes sugeridos logo abaixo e não consegue ver seus serviços organizados para pedir orçamento em 1 clique.*
 > 
-> *Criei uma demonstração visual gratuita e exclusiva de como ficaria um site premium para a **[Nome da Empresa]** no celular e computador. Temos planos flexíveis: Mensal (R$ 89,90/mês) ou Pagamento Único (R$ 790,00). Você pode ver o modelo e os planos no link:*
+> *Criei uma demonstração visual gratuita e exclusiva de como ficaria a página profissional da **[Nome da Empresa]** no celular e computador. Temos planos flexíveis: Mensal (R$ 89,90/mês) ou Pagamento Único (R$ 790,00). Você pode ver o modelo e os planos no link:*
 > 
 > 👉 **[Link da Proposta Vercel]**
 > 
-> *Se gostar, podemos conversar para colocá-lo no ar com o seu domínio próprio. O que acha?"*
+> *Se gostar, conectamos no seu Google Maps com domínio próprio. O que acha?"*
 
 ### Roteiro B — Foco em Fechamento Rápido (Plano Único)
 > *"Olá, tudo bem? Sou o **[Seu Nome]**, especialista em presença digital.*
 > 
-> *Estava analisando algumas empresas da região de Fortaleza no Google Maps e gostei muito das avaliações da **[Nome da Empresa]**. Porém, percebi que vocês perdem muitas buscas locais por não ter um site cadastrado.*
+> *Estava analisando empresas da região de Fortaleza no Google Maps e gostei muito das avaliações da **[Nome da Empresa]**. Porém, percebi que vocês ainda não têm um site próprio cadastrado no Maps para converter quem busca vocês em orçamentos diretos no WhatsApp.*
 > 
-> *Desenvolvi um layout exclusivo para vocês receberem orçamentos direto no WhatsApp. Você pode conferir a demonstração interativa aqui:*
+> *Desenvolvi uma demonstração interativa exclusiva para vocês conferirem no celular:*
 > 
 > 👉 **[Link da Proposta Vercel]**
 > 
-> *Entregamos este site configurado e no ar com o seu nome em até 7 dias, por um valor único de **R$ 790,00** (parcelados no cartão). Sem pegadinhas de mensalidades obrigatórias. Se fizer sentido para você, podemos agendar os detalhes?"*
+> *Entregamos este site configurado, conectado ao seu Google Maps e no ar com o seu domínio em até 7 dias, por um valor único de **R$ 790,00** (parcelados no cartão), sem mensalidades obrigatórias. Faz sentido conversarmos?"*
+
+### Roteiro C — Restaurantes & Gastronomia (Cardápio + Pedidos/Reservas sem Taxa)
+> *"Olá! Falo com o responsável pela **[Nome do Restaurante]**?*
+> 
+> *Vi vocês no Google Maps com ótimas avaliações (**[Nota Estrelas]** estrelas)! O Maps já traz clientes até vocês, mas notei que falta uma página própria no botão Site/Cardápio — hoje quem acha o perfil vê concorrentes logo abaixo e não consegue ver os pratos organizados ou pedir/reservar direto no WhatsApp sem taxa de aplicativo.*
+> 
+> *Criei gratuitamente uma demonstração visual de como ficaria essa página exclusiva para o **[Nome do Restaurante]** no celular. Temos planos flexíveis: Mensal (R$ 89,90/mês) ou Pagamento Único (R$ 790,00). Veja o modelo pronto:*
+> 
+> 👉 **[Link da Proposta Vercel]**
+> 
+> *Se gostar, conectamos no seu Google Maps e Instagram em poucos dias. O que acha?"*
+
+### Quebra de Objeção — "Mas eu já estou no Google Maps / Instagram"
+> **Para Restaurantes:**
+> *"Com certeza — inclusive vocês já têm ótimas avaliações lá, e o Maps é ótimo para as pessoas encontrarem vocês! O ponto é que hoje, sem um link próprio de Site/Cardápio, quem acha vocês no Maps vê fotos misturadas e concorrentes sugeridos logo abaixo, em vez de ver os pratos organizados e clicar para pedir no WhatsApp ou reservar mesa sem taxa de aplicativo. A página não substitui o Maps: ela transforma quem já encontra vocês lá em pedido direto."*
+>
+> **Para Outros Negócios Locais:**
+> *"Com certeza — o Google Maps já ajuda bastante a localizarem vocês! O ponto é que no próprio Maps o Google exibe vários concorrentes logo abaixo do seu perfil, e o cliente não consegue ver seus serviços organizados para pedir orçamento em 1 clique. O site não substitui o Maps: ele fecha o cliente que o Maps já trouxe e fortalece vocês nas buscas normais do Google."*
 
 ---
 

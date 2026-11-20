@@ -2287,29 +2287,66 @@ async function copyLeadProposalLink(leadId) {
   }
 }
 
+function isRestaurantLead(lead) {
+  const hint = `${lead?.category || ''} ${lead?.name || ''} ${lead?.bio || ''}`.toLowerCase();
+  return /(restaur|self[\s-]?service|churrasc|pizz|hamburg|lanche|sushi|japon|acai|açaí|padar|doceria|confeit|delivery|food|gastron|culinar|culinár|caseir|espetar|nordestin|bistr|grill|frutos do mar|cafeter|cantina|\bbar\b)/.test(
+    hint
+  );
+}
+
 function buildPitchMessage(lead, scriptType = 'auto') {
   const proposalLink = getProposalLink(lead, { preview: false });
   const isInstagram = lead.source === 'instagram' || (Boolean(lead.instagram) && (!lead.rating || lead.rating === 0));
+  const isRestaurant = isRestaurantLead(lead);
   const rating = parseFloat(lead.rating) || 0;
+  const reviewsCount = parseInt(lead.user_ratings_total, 10) || 0;
   const seller = state.settings.sellerName || 'Agência Web Express';
 
+  if (scriptType === 'objecao_maps') {
+    if (isRestaurant) {
+      return `Com certeza — inclusive vocês já têm ótimas referências no Google Maps, e o Maps é ótimo para as pessoas encontrarem a *${lead.name}*!
+
+O ponto é que hoje, sem um link próprio no botão de Site/Cardápio, quem acha vocês no Maps vê fotos misturadas e concorrentes sugeridos logo abaixo, em vez de ver os pratos organizados e clicar para pedir no WhatsApp ou reservar mesa sem taxa de aplicativo.
+
+A página não substitui o Maps: ela transforma quem já encontra vocês lá em pedido direto. Montei essa prévia para vocês verem na prática:
+👉 ${proposalLink}`;
+    }
+
+    return `Com certeza — o Google Maps já ajuda bastante as pessoas a localizarem a *${lead.name}*!
+
+O ponto é que no próprio Maps o Google exibe vários concorrentes logo abaixo do seu perfil, e o cliente não consegue ver seus serviços organizados em detalhes para pedir orçamento em 1 clique. O site não substitui o Maps: ele fecha o cliente que o Maps já trouxe e ainda fortalece vocês nas buscas normais do Google.
+
+Preparei uma prévia exclusiva para vocês visualizarem no celular:
+👉 ${proposalLink}`;
+  }
+
   if (scriptType === 'followup') {
-    return `Olá! Tudo bem? Passando rapidinho para saber se você conseguiu ver o modelo de site que montei exclusivamente para a *${lead.name}*.
+    const assetLabel = isRestaurant ? 'página de cardápio e pedidos' : 'modelo de site';
+    const topicHint = isRestaurant
+      ? 'cardápio, pedidos no WhatsApp sem taxa de app ou planos (R$ 89,90/mês ou R$ 790,00 único)'
+      : 'algum serviço ou tirar dúvidas sobre o plano mensal (R$ 89,90/mês) ou pagamento único (R$ 790,00)';
+    return `Olá! Tudo bem? Passando rapidinho para saber se você conseguiu ver a ${assetLabel} que montei exclusivamente para a *${lead.name}*.
 
 Deixei o link da demonstração aqui caso tenha ficado corrido antes:
 👉 ${proposalLink}
 
-Se quiser ajustar algum serviço ou tirar dúvidas sobre o plano mensal (R$ 89,90/mês) ou pagamento único (R$ 790,00), é só me responder aqui!`;
+Se quiser ajustar ${topicHint}, é só me responder aqui!`;
   }
 
   if (scriptType === 'instagram_dm') {
-    return `Olá, pessoal da ${lead.name}! Vi o perfil ${lead.instagram || 'de vocês'} no Instagram e achei o trabalho excelente. Notei que vocês ainda não têm um site próprio no link da bio e montei uma prévia gratuita de como ficaria a página da loja com botão direto pro WhatsApp: ${proposalLink} — se curtirem, me chamem aqui!`;
+    if (isRestaurant) {
+      return `Olá, pessoal da ${lead.name}! Vi o perfil ${lead.instagram || 'de vocês'} no Instagram e achei o trabalho excelente. Notei que falta uma página própria de cardápio na bio para receber pedidos e reservas direto no WhatsApp sem taxa de aplicativo. Montei uma prévia gratuita para vocês verem no celular: ${proposalLink} — se curtirem, me chamem aqui!`;
+    }
+    return `Olá, pessoal da ${lead.name}! Vi o perfil ${lead.instagram || 'de vocês'} no Instagram e achei o trabalho excelente. Notei que vocês ainda não têm um site próprio no link da bio para transformar seguidores e buscas do Google em orçamentos e montei uma prévia gratuita no celular: ${proposalLink} — se curtirem, me chamem aqui!`;
   }
 
   if (scriptType === 'unico') {
+    const gapText = isRestaurant
+      ? 'Percebi que vocês ainda não têm uma página própria de cardápio conectada ao Google Maps para receber pedidos e reservas direto no WhatsApp sem taxa de aplicativo.'
+      : 'Percebi que vocês ainda não têm um site próprio cadastrado no Google Maps para converter quem busca vocês em orçamentos diretos no WhatsApp.';
     return `Olá, tudo bem? Aqui é da *${seller}*.
 
-Estava analisando empresas da região e gostei muito do trabalho da *${lead.name}*. Percebi que vocês ainda não têm um site próprio cadastrado para receber orçamentos direto do Google.
+Estava analisando empresas da região e gostei muito do trabalho da *${lead.name}*. ${gapText}
 
 Desenvolvi uma demonstração exclusiva para vocês conferirem no celular:
 👉 ${proposalLink}
@@ -2317,10 +2354,30 @@ Desenvolvi uma demonstração exclusiva para vocês conferirem no celular:
 Entregamos tudo no ar com o domínio de vocês em até 7 dias por um valor único de *R$ 790,00* (sem mensalidades obrigatórias). Faz sentido conversarmos?`;
   }
 
+  if (scriptType === 'restaurante' || (scriptType === 'auto' && isRestaurant && (!lead.status || lead.status === 'novo'))) {
+    const ratingHighlight =
+      rating >= 4.0
+        ? `Vi a *${lead.name}* no Google Maps com excelentes avaliações (${rating} estrelas${reviewsCount > 0 ? ` em ${reviewsCount} opiniões` : ''})!`
+        : lead.instagram
+        ? `Vi o perfil da *${lead.name}* (${lead.instagram}) e o trabalho de vocês na região!`
+        : `Vi a *${lead.name}* no Google Maps e gostei muito do trabalho de vocês!`;
+
+    return `Olá! Falo com o responsável pela *${lead.name}*?
+
+${ratingHighlight} O Maps já ajuda clientes a encontrarem vocês, mas notei que falta uma página própria no botão *Site / Cardápio* — hoje quem acha o perfil vê concorrentes logo abaixo e não consegue ver os pratos organizados ou pedir/reservar direto no WhatsApp sem taxa de aplicativo.
+
+Criei gratuitamente uma demonstração visual de como ficaria essa página exclusiva para a *${lead.name}* no celular. Temos planos flexíveis: Mensal (R$ 89,90/mês) ou Pagamento Único (R$ 790,00).
+
+Veja o modelo pronto no link:
+👉 ${proposalLink}
+
+Se gostar, conectamos no seu Google Maps e Instagram em poucos dias. O que acha?`;
+  }
+
   if (scriptType === 'flexivel' || scriptType === 'auto') {
     if (isInstagram && scriptType === 'auto') {
       const bioObservation = lead.bio_link
-        ? 'Notei que hoje vocês usam apenas um link direto na bio, sem um site próprio para apresentar serviços e aparecer nas buscas do Google.'
+        ? 'Notei que hoje vocês usam apenas um link direto na bio, sem um site próprio para apresentar serviços, passar mais autoridade e aparecer nas buscas do Google.'
         : 'Notei que vocês ainda não possuem um site próprio cadastrado na bio para transformar seguidores e buscas do Google em orçamentos.';
 
       return `Olá! Falo com o responsável pela *${lead.name}*?
@@ -2336,9 +2393,9 @@ Se gostar, colocamos no ar com o seu domínio próprio em poucos dias. O que ach
     }
 
     if (lead.status && lead.status !== 'novo' && scriptType === 'auto') {
-      return `Olá! Passando para compartilhar a proposta oficial de desenvolvimento do site profissional da *${lead.name}*.
+      return `Olá! Passando para compartilhar a proposta oficial de desenvolvimento da página profissional da *${lead.name}*.
 
-Preparei um painel interativo com o modelo do site e os detalhes comerciais:
+Preparei um painel interativo com o diagnóstico, o modelo no celular e os detalhes comerciais:
 👉 ${proposalLink}
 
 Fico à disposição para tirar qualquer dúvida e iniciar o projeto!
@@ -2349,19 +2406,19 @@ Atenciosamente,
 
     const introMaps =
       rating >= 4.0
-        ? `Vi o perfil de vocês no Google Maps com excelentes avaliações (${rating} estrelas)! Notei que vocês ainda não possuem um site profissional cadastrado lá.`
-        : 'Vi o perfil da empresa no Google Maps e notei que vocês ainda não possuem um site profissional cadastrado por lá.';
+        ? `Vi o perfil de vocês no Google Maps com excelentes avaliações (${rating} estrelas${reviewsCount > 0 ? ` em ${reviewsCount} opiniões` : ''})! O Maps já ajuda os clientes a encontrarem vocês, mas notei que ainda não há um site próprio cadastrado lá.`
+        : 'Vi o perfil da empresa no Google Maps! O Maps já ajuda os clientes a encontrarem vocês, mas notei que ainda não há um site próprio cadastrado por lá.';
 
     return `Olá! Falo com o responsável ou proprietário da *${lead.name}*?
 
-${introMaps} Hoje em dia, cerca de 70% das pessoas procuram o site de uma empresa local antes de fechar negócio para passar mais confiança.
+${introMaps} Hoje, sem um site no botão do perfil, quem encontra vocês no Maps vê concorrentes sugeridos logo abaixo e não consegue ver seus serviços organizados para pedir orçamento em 1 clique. O site trabalha junto com o Maps para fechar mais clientes.
 
-Criei uma demonstração visual gratuita e exclusiva de como ficaria um site premium para a *${lead.name}* no celular e computador. Temos planos flexíveis: Mensal (R$ 89,90/mês) ou Pagamento Único (R$ 790,00).
+Criei uma demonstração visual gratuita e exclusiva de como ficaria a página da *${lead.name}* no celular e computador. Temos planos flexíveis: Mensal (R$ 89,90/mês) ou Pagamento Único (R$ 790,00).
 
 Você pode ver o modelo e os planos no link:
 👉 ${proposalLink}
 
-Se gostar, podemos conversar para colocá-lo no ar com o seu domínio próprio. O que acha?`;
+Se gostar, conectamos no seu Google Maps com domínio próprio. O que acha?`;
   }
 
   return '';

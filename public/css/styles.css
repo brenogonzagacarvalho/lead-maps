@@ -2094,3 +2094,75 @@ select option {
     grid-template-columns: 1fr;
   }
 }
+
+/* Seção "Por que ter um site além do Google Maps" (Proposta) */
+.proposal-why-section {
+  margin: 4rem 0;
+  text-align: center;
+}
+
+.proposal-why-title {
+  font-size: 2rem;
+  margin-bottom: 0.6rem;
+  color: var(--text-main);
+}
+
+.proposal-why-subtitle {
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  max-width: 760px;
+  margin: 0 auto 2.5rem;
+}
+
+.proposal-why-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.proposal-why-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.75rem;
+  text-align: left;
+  transition: var(--transition-smooth);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.proposal-why-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent-blue);
+}
+
+.proposal-why-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: var(--accent-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  margin-bottom: 1.1rem;
+}
+
+.proposal-why-card h3 {
+  font-size: 1.08rem;
+  color: var(--text-main);
+  margin-bottom: 0.6rem;
+}
+
+.proposal-why-card p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+@media (max-width: 768px) {
+  .proposal-why-grid {
+    grid-template-columns: 1fr;
+  }
+}
