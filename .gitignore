@@ -1,22 +1,60 @@
 # Dependências do Node
 node_modules/
 
-# Configurações locais e chaves privadas
+# Variáveis de ambiente e chaves privadas
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
 
-# Banco de dados local SQLite e logs
+# Banco de dados local SQLite
 *.db
 *.db-journal
 *.db-shm
 *.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-shm
+*.sqlite3-wal
+
+# Exportações de leads, planilhas e mockups gerados localmente
+*.csv
+*.xlsx
+*.xls
+mockup-*.png
+
+# Deploy (Vercel)
+.vercel/
+
+# Logs e cache do Node / gerenciadores de pacotes
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm
+.node_repl_history
+*.tgz
+coverage/
 
-# Arquivos do Sistema Operacional
+# Temporários e cache
+.cache/
+tmp/
+temp/
+
+# Editores e IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Arquivos do Sistema Operacional (Windows / macOS / Linux)
 .DS_Store
+._*
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
